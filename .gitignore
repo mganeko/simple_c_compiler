@@ -2,8 +2,9 @@
 !*/
 !*.*
 
-# generated assembly
+# generated assembly, object file
 *.s
+*.o
 
 # except Makefile
 !Makefile
