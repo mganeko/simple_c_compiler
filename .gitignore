@@ -1,3 +1,9 @@
 *
 !*/
 !*.*
+
+# generated assembly
+*.s
+
+# except Makefile
+!Makefile
