@@ -8,3 +8,5 @@
 
 # except Makefile
 !Makefile
+!Dockerfile
+
