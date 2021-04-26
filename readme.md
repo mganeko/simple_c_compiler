@@ -50,3 +50,11 @@ alias cbookit
 Online Compiler
 https://godbolt.org
 
+
+## 再帰下降構文解析
+
+```
+expr    = mul ("+" mul | "-" mul)*
+mul     = primary ("*" primary | "/" primary)*
+primary = num | "(" expr ")"
+```
