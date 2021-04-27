@@ -47,6 +47,14 @@ $ docker run --rm -it -v `pwd`/1cc:/1cc compilerbook
 alias cbookit
 
 
+Windowsの場合
+
+```
+$ docker run --rm -it -v C:/path/to/repo/9cc:/9cc compilerbook
+```
+
+
+
 Online Compiler
 https://godbolt.org
 
