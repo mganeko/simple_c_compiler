@@ -97,10 +97,36 @@ int expect_number() {
   return val;
 }
 
-
-
 bool at_eof() {
   return token->kind == TK_EOF;
+}
+
+// アイデンティファイヤーとして有効な文字か？
+bool is_ident_char(char c) {
+  if ( ('A' <= c) && (c <= 'Z') ) {
+    return true;
+  }
+
+  if ( ('a' <= c) && (c <= 'z') ) {
+    return true;
+  }
+
+  if (c == '_') {
+    return true;
+  }
+
+  return false;
+}
+
+// アイデンティファイヤーの長さを調べる
+int count_ident_len(char *p) {
+  int len = 0;
+  while (is_ident_char(*p)) {
+    len++;
+    p++;
+  }
+
+  return len;
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -112,6 +138,17 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   cur->next = tok;
   return tok;
 }
+
+// アイデンティファイヤーのトークンを作る
+Token *new_token_ident(TokenKind kind, Token *cur, char *str) {
+  Token *tok = calloc(1, sizeof(Token));
+  tok->kind = kind;
+  tok->str = str;
+  tok->len = count_ident_len(str);
+  cur->next = tok;
+  return tok;
+}
+
 
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p) {
@@ -139,9 +176,14 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 0);
-      cur->len = 1;
+    //if ('a' <= *p && *p <= 'z') {
+    //  cur = new_token(TK_IDENT, cur, p++, 0);
+    //  cur->len = 1;
+    //  continue;
+    //}
+    if(is_ident_char(*p)) {
+      cur = new_token_ident(TK_IDENT, cur, p);
+      p += cur->len;
       continue;
     }
 
@@ -161,6 +203,24 @@ Token *tokenize(char *p) {
 
 // ---- token ----
 
+
+// --- local variable ---
+// ローカル変数
+LVar *locals = NULL;
+
+
+// --- local variable ---
+// 変数を名前で検索する。見つからなかった場合はNULLを返す。
+LVar *find_lvar(Token *tok) {
+  for (LVar *var = locals; var; var = var->next) {
+    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+      return var;
+  }
+
+  return NULL;
+}
+
+
 // --- node ---
 Node *expr();
 
@@ -172,10 +232,35 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
-Node *new_node_lvar(char val_name) {
+// Node *new_node_lvar(char val_name) {
+//   Node *node = calloc(1, sizeof(Node));
+//   node->kind = ND_LVAR;
+//   node->offset = (val_name - 'a' + 1) * 8;
+//   return node;
+// }
+
+Node *new_node_lvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_LVAR;
-  node->offset = (val_name - 'a' + 1) * 8;
+
+  LVar *lvar = find_lvar(tok);
+  if (lvar) {
+    node->offset = lvar->offset;
+  } else {
+    lvar = calloc(1, sizeof(LVar));
+    lvar->next = locals;
+    lvar->name = tok->str;
+    lvar->len = tok->len;
+    if (locals) {
+      lvar->offset = locals->offset + 8;
+    }
+    else {
+      lvar->offset = 0;
+    }
+    node->offset = lvar->offset;
+    locals = lvar;
+  }
+
   return node;
 }
 
@@ -197,9 +282,7 @@ Node *primary() {
   // 変数（アイデンティファイヤー）か？
   Token *tok = consume_ident();
   if (tok) {
-    char var = tok->str[0];
-    Node *node = new_node_lvar(var);
-    //fprintf(stderr, "iden %c \n", var);
+    Node *node = new_node_lvar(tok);
     return node;
   }
 

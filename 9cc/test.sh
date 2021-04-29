@@ -75,7 +75,7 @@ assert 0 "a;"
 assert 1 "a=1;"
 assert 2 "z=2;";
 assert 2 "b=(1+2+3-6*2+10)/2;"
-
 assert 3 "a=1;b=2;a+b;"
+assert 6 "foo=1;bar=2+3;foo+bar;"
 
 echo OK

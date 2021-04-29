@@ -76,3 +76,7 @@ new_token() で、長さを知るための引数が必要ではないか？
 ## Step 8
 
 void gen(Node *node)  のサンプルで case '+': となっているのは case ND_ADD 等ではないか？
+
+## Step 10
+
+lvar->offset = locals->offset + 8; // locals == NULL の時がある
