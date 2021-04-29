@@ -7,12 +7,55 @@
 
 #include "9cc.h"
 
+// エラーを報告するための関数
+// printfと同じ引数を取る
+void error(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+void gen_lval(Node *node) {
+  if (node->kind != ND_LVAR)
+    error("代入の左辺値が変数ではありません");
+
+  printf("  mov rax, rbp\n");
+  printf("  sub rax, %d\n", node->offset);
+  printf("  push rax\n");
+}
+
+
 void gen(Node *node) {
   if (node->kind == ND_NUM) {
     printf("  push %d\n", node->val);
     return;
   }
 
+  // 変数読み出し
+  if (node->kind == ND_LVAR) {
+    gen_lval(node);
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+    return;
+  }
+
+  // 変数代入
+  if (node->kind == ND_ASSIGN) {
+    gen_lval(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  mov [rax], rdi\n");
+    printf("  push rdi\n");
+
+    return;
+  }
+
+  // --- 演算子 ----
   gen(node->lhs);
   gen(node->rhs);
 
@@ -64,6 +107,10 @@ void gen(Node *node) {
     printf("  setge al\n");
     printf("  movzb rax, al\n");
     break;
+
+  default:
+    error("UNKNOWN Node Kind(%d) while Genereting code \n", node->kind);
+    exit(1);
   }
 
   printf("  push rax\n");

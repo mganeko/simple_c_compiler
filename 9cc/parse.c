@@ -9,11 +9,14 @@
 
 
 
-// // 現在着目しているトークン
-// Token *token;
+// 現在着目しているトークン 
+Token *token;
 
-// // 入力プログラム
-// char *user_input;
+// 入力プログラム 
+char *user_input;
+
+// --- コード全体 ---
+Node *code[100];
 
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...) {
@@ -24,16 +27,6 @@ void error_at(char *loc, char *fmt, ...) {
   fprintf(stderr, "%s\n", user_input);
   fprintf(stderr, "%*s", pos, " "); // pos個の空白を出力
   fprintf(stderr, "^ ");
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
-}
-
-// エラーを報告するための関数
-// printfと同じ引数を取る
-void error(char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -51,6 +44,29 @@ bool consume(char *op) {
 
   token = token->next;
   return true;
+}
+
+// // 次のトークンが変数かどうかをチェック
+// bool is_variable() {
+//   if (token->kind == TK_IDENT) {
+//     return true;
+//   }
+
+//   return false;
+// }
+
+
+// 次のトークンがアイデンティファイヤーかどうかをチェック
+// 変数の場合は、トークンを1つ読み進めて元のトークンを返す
+// それ以外はNULLを返す
+Token *consume_ident() {
+  if (token->kind != TK_IDENT) {
+    return NULL;
+  }
+
+  Token *current = token;
+  token = token->next;
+  return current;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
@@ -80,6 +96,8 @@ int expect_number() {
   token = token->next;
   return val;
 }
+
+
 
 bool at_eof() {
   return token->kind == TK_EOF;
@@ -116,8 +134,14 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (strchr("+-*/()<>", *p)) {
+    if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_IDENT, cur, p++, 0);
+      cur->len = 1;
       continue;
     }
 
@@ -138,13 +162,20 @@ Token *tokenize(char *p) {
 // ---- token ----
 
 // --- node ---
-
+Node *expr();
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
   node->lhs = lhs;
   node->rhs = rhs;
+  return node;
+}
+
+Node *new_node_lvar(char val_name) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_LVAR;
+  node->offset = (val_name - 'a' + 1) * 8;
   return node;
 }
 
@@ -160,6 +191,15 @@ Node *primary() {
   if (consume("(")) {
     Node *node = expr();
     expect(")");
+    return node;
+  }
+
+  // 変数（アイデンティファイヤー）か？
+  Token *tok = consume_ident();
+  if (tok) {
+    char var = tok->str[0];
+    Node *node = new_node_lvar(var);
+    //fprintf(stderr, "iden %c \n", var);
     return node;
   }
 
@@ -231,15 +271,29 @@ Node *equality() {
   }
 }
 
-Node *expr() {
+Node *assign() {
   Node *node = equality();
+  if (consume("=")) 
+    node = new_node(ND_ASSIGN, node, equality());
 
-  for (;;) {
-    if (consume("+"))
-      node = new_node(ND_ADD, node, equality());
-    else if (consume("-"))
-      node = new_node(ND_SUB, node, equality());
-    else
-      return node;
-  }
+  return node;
+}
+
+
+Node *expr() {
+  Node *node = assign();
+  return node;
+}
+
+Node *stmt() {
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
+void program() {
+  int i = 0;
+  while (!at_eof())
+    code[i++] = stmt();
+  code[i] = NULL;
 }

@@ -66,3 +66,13 @@ expr    = mul ("+" mul | "-" mul)*
 mul     = primary ("*" primary | "/" primary)*
 primary = num | "(" expr ")"
 ```
+
+## Step 7
+
+new_token() で、長さを知るための引数が必要ではないか？
+- 長さを与える
+- or 終了位置を与える（リファレンス実装はこちら）
+
+## Step 8
+
+void gen(Node *node)  のサンプルで case '+': となっているのは case ND_ADD 等ではないか？
