@@ -220,6 +220,16 @@ LVar *find_lvar(Token *tok) {
   return NULL;
 }
 
+// ローカル変数の数を返す
+int count_lvar() {
+  int count = 0;
+  for (LVar *var = locals; var; var = var->next) {
+    count++;
+  }
+
+  return count;
+}
+
 
 // --- node ---
 Node *expr();

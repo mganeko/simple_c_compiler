@@ -35,10 +35,13 @@ int main(int argc, char **argv) {
   printf("main:\n");
 
   // プロローグ
-  // 変数26個分の領域を確保する
+  // (OLD: 変数26個分の領域を確保する)
+  // DONE: 利用している変数の数だけ、領域を確保するように変更
+  int stack_offset = 8*count_lvar();
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");
+  //printf("  sub rsp, 208\n"); // 26*8 = 208
+  printf("  sub rsp, %d\n", stack_offset); 
 
   // --- 抽象構文木を下りながらコード生成 ---
   // 先頭の式から順にコード生成

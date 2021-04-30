@@ -74,6 +74,9 @@ struct Node {
 //Node *expr();
 void program();
 
+// ローカル変数の数を返す
+int count_lvar();
+ 
 // 現在着目しているトークン （外部を参照）
 extern Token *token;
 
