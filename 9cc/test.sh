@@ -77,7 +77,12 @@ assert 2 "z=2;";
 assert 2 "b=(1+2+3-6*2+10)/2;"
 assert 3 "a=1;b=2;a+b;"
 assert 6 "foo=1;bar=2+3;foo+bar;"
-
 assert 30 "a=1;b=1;c=1;d=1;e=1;f=1;g=1;h=1;i=1;j=1;k=1;l=1;m=1;n=1;o=1;p=1;q=1;r=1;s=1;t=1;u=1;v=1;w=1;x=1;y=1;z=1;AA=1;BB=1;CC=1;DD=1;a+b+c+d+e+f+g+h+i+j+k+l+m+n+o+p+q+r+s+t+u+v+w+x+y+z+AA+BB+CC+DD;"
+
+# return
+assert 2 "return 2;"
+assert 3 "return 1+2;"
+assert 3 "return (1+2);"
+assert 5 "a=1;b=2; return a+b * b;"
 
 echo OK

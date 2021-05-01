@@ -56,6 +56,17 @@ bool consume(char *op) {
 // }
 
 
+// 次のトークンが期待してい種類かどうか？
+// - 期待した種類の場合はトークンを1つ読み進めて真を返す。
+// - それ以外の場合には偽を返す。
+bool consume_kind(TokenKind kind) {
+  if (token->kind != kind)
+    return false;
+
+  token = token->next;
+  return true;
+}
+
 // 次のトークンがアイデンティファイヤーかどうかをチェック
 // 変数の場合は、トークンを1つ読み進めて元のトークンを返す
 // それ以外はNULLを返す
@@ -129,6 +140,14 @@ int count_ident_len(char *p) {
   return len;
 }
 
+// 文字列トークンの文字か？
+int is_alnum(char c) {
+  return ('a' <= c && c <= 'z') ||
+    ('A' <= c && c <= 'Z') ||
+    ('0' <= c && c <= '9') ||
+    (c == '_');
+}
+
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
@@ -163,6 +182,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // --- 比較演算子 ---
     if ( (memcmp(p, "==", 2) == 0) || (memcmp(p, "!=", 2) == 0)
       || (memcmp(p, "<=", 2) == 0) || (memcmp(p, ">=", 2) == 0)
     ) {
@@ -171,16 +191,26 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // --- 四則演算子 ---
     if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
 
-    //if ('a' <= *p && *p <= 'z') {
-    //  cur = new_token(TK_IDENT, cur, p++, 0);
-    //  cur->len = 1;
-    //  continue;
-    //}
+    // ==== 予約語 =====
+    // -- return --
+    if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
+      // tokens[i].ty = TK_RETURN;
+      // tokens[i].str = p;
+      // i++;
+  
+      cur = new_token(TK_RETURN, cur, p, 6);
+      p += 6;
+      continue;
+    }
+    // ==== 予約語 =====
+
+    // -- アイデンティファイヤー
     if(is_ident_char(*p)) {
       cur = new_token_ident(TK_IDENT, cur, p);
       p += cur->len;
@@ -379,8 +409,22 @@ Node *expr() {
 }
 
 Node *stmt() {
-  Node *node = expr();
-  expect(";");
+  // Node *node = expr();
+  // expect(";");
+
+  Node *node = NULL;
+
+  if (consume_kind(TK_RETURN)) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = expr();
+  } else {
+    node = expr();
+  }
+
+  if (!consume(";"))
+    error_at(token->str, "';'ではないトークンです");
+
   return node;
 }
 

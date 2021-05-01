@@ -41,7 +41,7 @@ alias: cbookmake
 マウントしながらインタラクティブ実行
 
 ```
-$ docker run --rm -it -v `pwd`/1cc:/1cc compilerbook
+$ docker run --rm -it -v `pwd`/9cc:/9cc compilerbook
 ```
 
 alias cbookit
@@ -80,3 +80,18 @@ void gen(Node *node)  のサンプルで case '+': となっているのは case
 ## Step 10
 
 lvar->offset = locals->offset + 8; // locals == NULL の時がある
+
+## Step 11
+
+tokenize() tokens[i].ty = TK_RETURN;
+
+※tokensはまだない
+
+Node *stmt() {
+  if (consume(TK_RETURN)) { // <-- 今ある関数とは違う
+
+if (!consume(';'))  // <-- 今ある関数とは違う
+
+
+
+
