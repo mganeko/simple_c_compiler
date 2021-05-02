@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "--- after tokenize ---\n");
   //Node *node = expr();
   program();
+  fprintf(stderr, "--- after program ---\n");
 
   // --- start ---
   printf(".intel_syntax noprefix\n");

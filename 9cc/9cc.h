@@ -8,6 +8,8 @@ typedef enum {
   TK_RETURN,    // return
   TK_IF,        // if
   TK_ELSE,      // else
+  TK_WHILE,     // while
+  TK_FOR,       // for
   TK_NUM,       // 整数トークン
   TK_EOF,       // 入力の終わりを表すトークン
 } TokenKind;
@@ -59,7 +61,9 @@ typedef enum {
   ND_ASSIGN, // = (代入)
   ND_RETURN, // return
   ND_IF, // if
-  ND_ELSE, // else
+  //ND_ELSE, // else
+  ND_WHILE, // while
+  ND_FOR, // for
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
@@ -70,9 +74,13 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
   NodeKind kind; // ノードの型
-  Node *lhs;     // 左辺 (if の場合条件)
-  Node *rhs;     // 右辺 (if の場合、then)
-  Node *elsenode; // ifの場合、else
+  Node *lhs;     // 左辺
+  Node *rhs;     // 右辺
+  Node *cond; // if/whileの条件, forの条件(2番目)
+  Node *body; // 実行部 (ifのthen, while/forの実行部)
+  Node *elsebody; // ifの場合、else部分
+  Node *init; // forの初期化(1番目)
+  Node *post; // forの続行処理(3番目)
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
 };

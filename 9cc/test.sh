@@ -85,7 +85,7 @@ assert 3 "return 1+2;"
 assert 3 "return (1+2);"
 assert 5 "a=1;b=2; return a+b * b;"
 
-# if
+# if/else
 assert 2 "a=1; if (a==1) return 2; return 3;"
 assert 3 "a=1; if (a!=1) return 2; return 3;"
 assert 2 "a=1; if (a==1) a = a +1; return a;"
@@ -102,4 +102,15 @@ assert 3 "a=2; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; els
 assert 11 "a=12; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
 assert 9 "a=6; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
 
+# while
+assert 2 "a=10; while(a) a = a - 1;a+2;"
+assert 7 "a=10; while(a > 5) a = a - 1;a+2;"
+#assert 2 "a=1; a=a+1;"
+assert 55 "sum=0; i=0; while((i=i+1) <=10) sum = sum + i; return sum;"
+
+# for
+assert 55 "sum=0; for(i=1; i<=10; i=i+1) sum=sum+i;sum;"
+assert 55 "sum=0; i=0; for(; i<=10; i=i+1) sum=sum+i;sum;"
+
+# ---- END ----
 echo OK

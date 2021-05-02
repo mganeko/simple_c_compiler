@@ -18,6 +18,16 @@ char *user_input;
 // --- コード全体 ---
 Node *code[100];
 
+// ログを出す
+void report_log(char *fmt, ...) {
+  //return;
+
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  //fprintf(stderr, "\n");
+}
+
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...) {
   va_list ap;
@@ -47,7 +57,7 @@ bool consume(char *op) {
 }
 
 void dump_token() {
-  fprintf(stderr, "token kind=%d, len=%d str=%s \n", token->kind, token->len, token->str);
+  report_log("token kind=%d, len=%d str=%s \n", token->kind, token->len, token->str);
 }
 
 // // 次のトークンが変数かどうかをチェック
@@ -214,16 +224,29 @@ Token *tokenize(char *p) {
     }
 
     if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
-      fprintf(stderr, "if発見\n");
+      //report_log("if発見\n");
       cur = new_token(TK_IF, cur, p, 2);
       p += 2;
-      //fprintf(stderr, "if切り出し\n");
+      //report_log("if切り出し\n");
       continue;
     }
     if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
-      fprintf(stderr, "else発見\n");
+      //report_log("else発見\n");
       cur = new_token(TK_ELSE, cur, p, 4);
       p += 4;
+      continue;
+    }
+    if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
+      //report_log("while発見\n");
+      cur = new_token(TK_WHILE, cur, p, 5);
+      p += 5;
+      continue;
+    }
+
+    if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
+      report_log("for発見\n");
+      cur = new_token(TK_FOR, cur, p, 3);
+      p += 3;
       continue;
     }
     // ==== 予約語 =====
@@ -340,13 +363,13 @@ Node *primary() {
   // 変数（アイデンティファイヤー）か？
   Token *tok = consume_ident();
   if (tok) {
-    //fprintf(stderr, "--Node IDENT\n");
+    //report_log("--Node IDENT\n");
     Node *node = new_node_lvar(tok);
     return node;
   }
 
   // そうでなければ数値のはず
-  //fprintf(stderr, "--Node NUM\n");
+  //report_log("--Node NUM\n");
   return new_node_num(expect_number());
 }
 
@@ -417,7 +440,7 @@ Node *equality() {
 Node *assign() {
   Node *node = equality();
   if (consume("=")) {
-    //fprintf(stderr, "--Node =\n");
+    //report_log("--Node =\n");
     node = new_node(ND_ASSIGN, node, equality());
   }
 
@@ -437,7 +460,7 @@ Node *stmt() {
   Node *node = NULL;
 
   if (consume_kind(TK_RETURN)) {
-    fprintf(stderr, "--Node RETURN\n");
+    report_log("--Node RETURN\n");
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = expr();
@@ -445,28 +468,48 @@ Node *stmt() {
     if (!consume(";"))
       error_at(token->str, "';'ではないトークンです");
   } else if (consume_kind(TK_IF)) {
-    fprintf(stderr, "--Node IF\n");
+    report_log("--Node IF\n");
 
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_IF;
-    node->lhs = expr();
+    node->cond = expr();
     expect(")");
-    node->rhs = stmt();
+    node->body = stmt();
 
     // -- check else --
     if (consume_kind(TK_ELSE)) {
-      fprintf(stderr, "--Node ELSE\n");
+      report_log("--Node ELSE\n");
 
-      node->elsenode = calloc(1, sizeof(Node));
-      node->elsenode->kind = ND_ELSE;
-      node->elsenode->lhs = stmt();
-
-      //error_at(token->str, "ELSEは実装途中");
+      node->elsebody = stmt();
     }
+    else {
+      node->elsebody = NULL;
+    }
+  } else if (consume_kind(TK_WHILE)) {
+    report_log("--Node WHILE\n");
+    expect("(");
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_WHILE;
+    node->cond = expr();
+    expect(")");
+    node->body = stmt();
+  } else if (consume_kind(TK_FOR)) {
+    report_log("--Node FOR\n");
+    expect("(");
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_FOR;
 
-    //fprintf(stderr, "if node done node=%ld rhs=%ld \n", (long)node, (long)node->rhs);
-    //error_at(token->str, "IFは実装途中");
+    node->init = expr(); // init expr がないケースもある
+    expect(";");
+    node->cond = expr(); // cond expr がないケースもある
+    expect(";");
+    node->post = expr(); // post expr がないケースもある
+
+    expect(")");
+    node->body = stmt();
+
+    report_log("--Node FOR end\n");
   } else {
     node = expr();
     if (!consume(";"))

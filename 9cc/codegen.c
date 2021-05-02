@@ -36,20 +36,19 @@ void gen(Node *node) {
     label_index++;
 
     // 条件部
-    gen(node->lhs);
-
+    gen(node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
     printf("  je .Lelse%d\n", current_label);
 
     // 実行部
-    gen(node->rhs);
+    gen(node->body);
     printf("  jmp .Lend%d\n", current_label);
 
     // else
     printf(".Lelse%d:\n", current_label);
-    if (node->elsenode) {
-      gen(node->elsenode);
+    if (node->elsebody) {
+      gen(node->elsebody);
     }
 
     // 終了
@@ -57,9 +56,51 @@ void gen(Node *node) {
     return;
   }
 
-  if (node->kind == ND_ELSE) {
-    //fprintf(stderr, "--generate ELSE node BODY--\n");
-    gen(node->lhs);
+  if (node->kind == ND_WHILE) {
+    // ラベル番号を確保、次のラベル用にカウントアップ
+    current_label = label_index;
+    label_index++;
+
+    // 開始
+    printf(".Lbegin%d:\n", current_label);
+
+    // 条件部
+    gen(node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .Lend%d\n", current_label);
+
+    // 実行部
+    gen(node->body);
+    printf("  jmp .Lbegin%d\n", current_label);
+
+    // 終了
+    printf(".Lend%d:\n", current_label);
+    return;
+  }
+
+  if (node->kind == ND_FOR) {
+    // ラベル番号を確保、次のラベル用にカウントアップ
+    current_label = label_index;
+    label_index++;
+
+    // 開始
+    gen(node->init);
+    printf(".Lbegin%d:\n", current_label);
+
+    // 条件部
+    gen(node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .Lend%d\n", current_label);
+
+    // 実行部
+    gen(node->body);
+    gen(node->post);
+    printf("  jmp .Lbegin%d\n", current_label);
+
+    // 終了
+    printf(".Lend%d:\n", current_label);
     return;
   }
 
