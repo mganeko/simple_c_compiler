@@ -500,15 +500,31 @@ Node *stmt() {
     node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
 
-    node->init = expr(); // init expr がないケースもある
-    expect(";");
-    node->cond = expr(); // cond expr がないケースもある
-    expect(";");
-    node->post = expr(); // post expr がないケースもある
+    if(consume(";")) {
+      node->init = NULL; // init expr がないケースもある
+    }
+    else {
+      node->init = expr(); 
+      expect(";");
+    }
 
-    expect(")");
+    if(consume(";")) {
+      node->cond = NULL; // cond expr がないケースもある
+    }
+    else {
+      node->cond = expr();
+      expect(";");
+    }
+
+    if(consume(")")) {
+      node->post = NULL; // post expr がないケースもある
+    }
+    else {
+      node->post = expr(); // post expr がないケースもある
+      expect(")");
+    }
+
     node->body = stmt();
-
     report_log("--Node FOR end\n");
   } else {
     node = expr();

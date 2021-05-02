@@ -85,18 +85,23 @@ void gen(Node *node) {
     label_index++;
 
     // 開始
-    gen(node->init);
+    if(node->init)
+      gen(node->init);
     printf(".Lbegin%d:\n", current_label);
 
     // 条件部
-    gen(node->cond);
+    if(node->cond)
+      gen(node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
     printf("  je .Lend%d\n", current_label);
 
     // 実行部
     gen(node->body);
-    gen(node->post);
+
+    // 後処理
+    if(node->post)
+      gen(node->post);
     printf("  jmp .Lbegin%d\n", current_label);
 
     // 終了
