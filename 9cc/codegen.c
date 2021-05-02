@@ -26,8 +26,43 @@ void gen_lval(Node *node) {
   printf("  push rax\n");
 }
 
+int label_index = 0;
 
 void gen(Node *node) {
+  int current_label;
+  if (node->kind == ND_IF) {
+    // ラベル番号を確保、次のラベル用にカウントアップ
+    current_label = label_index;
+    label_index++;
+
+    // 条件部
+    gen(node->lhs);
+
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .Lelse%d\n", current_label);
+
+    // 実行部
+    gen(node->rhs);
+    printf("  jmp .Lend%d\n", current_label);
+
+    // else
+    printf(".Lelse%d:\n", current_label);
+    if (node->elsenode) {
+      gen(node->elsenode);
+    }
+
+    // 終了
+    printf(".Lend%d:\n", current_label);
+    return;
+  }
+
+  if (node->kind == ND_ELSE) {
+    //fprintf(stderr, "--generate ELSE node BODY--\n");
+    gen(node->lhs);
+    return;
+  }
+
   if (node->kind == ND_RETURN) {
     gen(node->lhs);
     printf("  pop rax\n");

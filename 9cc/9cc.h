@@ -3,11 +3,13 @@
 
 // トークンの種類
 typedef enum {
-  TK_RESERVED, // 記号
-  TK_IDENT,    // 識別子
-  TK_RETURN,   // return
-  TK_NUM,      // 整数トークン
-  TK_EOF,      // 入力の終わりを表すトークン
+  TK_RESERVED,  // 記号
+  TK_IDENT,     // 識別子
+  TK_RETURN,    // return
+  TK_IF,        // if
+  TK_ELSE,      // else
+  TK_NUM,       // 整数トークン
+  TK_EOF,       // 入力の終わりを表すトークン
 } TokenKind;
 
 typedef struct Token Token;
@@ -56,6 +58,8 @@ typedef enum {
   ND_LE, // <=
   ND_ASSIGN, // = (代入)
   ND_RETURN, // return
+  ND_IF, // if
+  ND_ELSE, // else
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
@@ -66,8 +70,9 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
   NodeKind kind; // ノードの型
-  Node *lhs;     // 左辺
-  Node *rhs;     // 右辺
+  Node *lhs;     // 左辺 (if の場合条件)
+  Node *rhs;     // 右辺 (if の場合、then)
+  Node *elsenode; // ifの場合、else
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
 };

@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
 
   // トークナイズする
   token = tokenize(user_input);
+  fprintf(stderr, "--- after tokenize ---\n");
   //Node *node = expr();
   program();
 

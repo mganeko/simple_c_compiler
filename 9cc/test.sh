@@ -85,4 +85,21 @@ assert 3 "return 1+2;"
 assert 3 "return (1+2);"
 assert 5 "a=1;b=2; return a+b * b;"
 
+# if
+assert 2 "a=1; if (a==1) return 2; return 3;"
+assert 3 "a=1; if (a!=1) return 2; return 3;"
+assert 2 "a=1; if (a==1) a = a +1; return a;"
+assert 2 "a=1; if (a==1) return 2; else a = 3; return a;"
+assert 2 "a=3; if (a!=1) return 2; else a = 3; return a;"
+assert 2 "a=1; if (a==1) a=2; else a = 3; return a;"
+
+assert 2 "a=1; if (a<5) if (a==1) return 2; else a = 3; else a=6; return a;"
+assert 3 "a=2; if (a<5) if (a==1) return 2; else a = 3; else a=6; return a;"
+assert 6 "a=8; if (a<5) if (a==1) return 2; else a = 3; else a=6; return a;"
+
+assert 2 "a=1; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
+assert 3 "a=2; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
+assert 11 "a=12; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
+assert 9 "a=6; if (a<5) if (a==1) return 2; else a = 3; else if (a>10) a=11; else a=9; return a;"
+
 echo OK
