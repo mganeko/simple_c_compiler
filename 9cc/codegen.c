@@ -31,6 +31,8 @@ int label_index = 0;
 void gen(Node *node) {
   int current_label;
   if (node->kind == ND_IF) {
+    printf("  # -- start if --\n");
+
     // ラベル番号を確保、次のラベル用にカウントアップ
     current_label = label_index;
     label_index++;
@@ -53,10 +55,13 @@ void gen(Node *node) {
 
     // 終了
     printf(".Lend%d:\n", current_label);
+    printf("  # -- end if --\n");
     return;
   }
 
   if (node->kind == ND_WHILE) {
+    printf("  # -- start while --\n");
+
     // ラベル番号を確保、次のラベル用にカウントアップ
     current_label = label_index;
     label_index++;
@@ -76,10 +81,12 @@ void gen(Node *node) {
 
     // 終了
     printf(".Lend%d:\n", current_label);
+    printf("  # -- end while --\n");
     return;
   }
 
   if (node->kind == ND_FOR) {
+    printf("  # -- start for --\n");
     // ラベル番号を確保、次のラベル用にカウントアップ
     current_label = label_index;
     label_index++;
@@ -90,11 +97,12 @@ void gen(Node *node) {
     printf(".Lbegin%d:\n", current_label);
 
     // 条件部
-    if(node->cond)
+    if(node->cond) {
       gen(node->cond);
-    printf("  pop rax\n");
-    printf("  cmp rax,0\n");
-    printf("  je .Lend%d\n", current_label);
+      printf("  pop rax\n");
+      printf("  cmp rax,0\n");
+      printf("  je .Lend%d\n", current_label);
+    }
 
     // 実行部
     gen(node->body);
@@ -106,10 +114,26 @@ void gen(Node *node) {
 
     // 終了
     printf(".Lend%d:\n", current_label);
+    printf("  # -- end for --\n");
+    return;
+  }
+
+  if (node->kind == ND_BLOCK) {
+    printf("  # -- start block --\n");
+    fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
+    int i;
+    for (i=0; i < node->stmts_count; i++) {
+      fprintf(stderr, "block line(%d)\n", i);
+      printf("  # -block line-\n");
+      gen(node->stmts[i]);
+      printf("  pop rax\n");
+    }
+    printf("  # -- end block --\n");
     return;
   }
 
   if (node->kind == ND_RETURN) {
+    printf("  # -- return --\n");
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  mov rsp, rbp\n");
@@ -147,8 +171,13 @@ void gen(Node *node) {
   }
 
   // --- 演算子 ----
-  gen(node->lhs);
-  gen(node->rhs);
+  if (node->lhs && node->rhs) {
+    gen(node->lhs);
+    gen(node->rhs);
+  }
+  else {
+    error("NOT Operator Node found, Kind(%d) while Genereting code \n", node->kind);
+  }
 
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -201,7 +230,6 @@ void gen(Node *node) {
 
   default:
     error("UNKNOWN Node Kind(%d) while Genereting code \n", node->kind);
-    exit(1);
   }
 
   printf("  push rax\n");

@@ -114,5 +114,9 @@ assert 55 "sum=0; i=1; for(; i<=10; i=i+1) sum=sum+i;sum;"
 assert 55 "sum=0; i=0; for(; i<10; ) sum=sum+(i=i+1);sum;"
 #assert 55 "sum=0; i=0; for(; ;) sum=sum+(i=i+1);sum;"  # 無限ループ
 
+# block
+#assert 55 "sum=0; for(i=1; i<=10;) { sum = sum + i; i= i+1; } return sum;"
+
+
 # ---- END ----
 echo OK

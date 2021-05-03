@@ -16,16 +16,34 @@ Token *token;
 char *user_input;
 
 // --- コード全体 ---
-Node *code[100];
+Node *code[CODE_LINE_MAX];
+
+
+// -- ログ ---
+//int log_level = 0; // 指定したレベル以下のログを出力する
+//int log_level = 1; // 指定したレベル以下のログを出力する
+int log_level = 2; // 指定したレベル以下のログを出力する
+//int log_level = 3; // 指定したレベル以下のログを出力する
+
 
 // ログを出す
-void report_log(char *fmt, ...) {
-  //return;
+void report_log(int level, char *fmt, ...) {
+  if (level > log_level)
+    return;
 
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   //fprintf(stderr, "\n");
+}
+
+// エラーを報告する
+void report_error(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
 }
 
 // エラー箇所を報告する
@@ -57,7 +75,7 @@ bool consume(char *op) {
 }
 
 void dump_token() {
-  report_log("token kind=%d, len=%d str=%s \n", token->kind, token->len, token->str);
+  report_log(1, "token kind=%d, len=%d str=%s \n", token->kind, token->len, token->str);
 }
 
 // // 次のトークンが変数かどうかをチェック
@@ -205,8 +223,8 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    // --- 四則演算子 ---
-    if (strchr("+-*/()<>=;", *p)) {
+    // --- 四則演算子、記号 ---
+    if (strchr("+-*/()<>=;{}", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -224,27 +242,27 @@ Token *tokenize(char *p) {
     }
 
     if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
-      //report_log("if発見\n");
+      report_log(3, "if発見\n");
       cur = new_token(TK_IF, cur, p, 2);
       p += 2;
-      //report_log("if切り出し\n");
+      report_log(3, "if切り出し\n");
       continue;
     }
     if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
-      //report_log("else発見\n");
+      report_log(3, "else発見\n");
       cur = new_token(TK_ELSE, cur, p, 4);
       p += 4;
       continue;
     }
     if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
-      //report_log("while発見\n");
+      report_log(3, "while発見\n");
       cur = new_token(TK_WHILE, cur, p, 5);
       p += 5;
       continue;
     }
 
     if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
-      report_log("for発見\n");
+      report_log(2, "for発見\n");
       cur = new_token(TK_FOR, cur, p, 3);
       p += 3;
       continue;
@@ -363,13 +381,13 @@ Node *primary() {
   // 変数（アイデンティファイヤー）か？
   Token *tok = consume_ident();
   if (tok) {
-    //report_log("--Node IDENT\n");
+    report_log(3, "--Node IDENT\n");
     Node *node = new_node_lvar(tok);
     return node;
   }
 
   // そうでなければ数値のはず
-  //report_log("--Node NUM\n");
+  report_log(3, "--Node NUM\n");
   return new_node_num(expect_number());
 }
 
@@ -440,7 +458,7 @@ Node *equality() {
 Node *assign() {
   Node *node = equality();
   if (consume("=")) {
-    //report_log("--Node =\n");
+    report_log(3, "--Node =\n");
     node = new_node(ND_ASSIGN, node, equality());
   }
 
@@ -460,7 +478,7 @@ Node *stmt() {
   Node *node = NULL;
 
   if (consume_kind(TK_RETURN)) {
-    report_log("--Node RETURN\n");
+    report_log(3, "--Node RETURN\n");
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = expr();
@@ -468,7 +486,7 @@ Node *stmt() {
     if (!consume(";"))
       error_at(token->str, "';'ではないトークンです");
   } else if (consume_kind(TK_IF)) {
-    report_log("--Node IF\n");
+    report_log(3, "--Node IF\n");
 
     expect("(");
     node = calloc(1, sizeof(Node));
@@ -479,7 +497,7 @@ Node *stmt() {
 
     // -- check else --
     if (consume_kind(TK_ELSE)) {
-      report_log("--Node ELSE\n");
+      report_log(3, "--Node ELSE\n");
 
       node->elsebody = stmt();
     }
@@ -487,15 +505,16 @@ Node *stmt() {
       node->elsebody = NULL;
     }
   } else if (consume_kind(TK_WHILE)) {
-    report_log("--Node WHILE\n");
+    report_log(3, "--Node WHILE\n");
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_WHILE;
     node->cond = expr();
     expect(")");
     node->body = stmt();
-  } else if (consume_kind(TK_FOR)) {
-    report_log("--Node FOR\n");
+  } 
+  else if (consume_kind(TK_FOR)) {
+    report_log(2, "--Node FOR\n");
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
@@ -525,8 +544,24 @@ Node *stmt() {
     }
 
     node->body = stmt();
-    report_log("--Node FOR end\n");
-  } else {
+    report_log(2, "--Node FOR end\n");
+  }
+  else if (consume("{")) {
+    report_log(2, "--Node BLOCK\n");
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_BLOCK;
+    node->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
+    node->stmts_count = 0;
+    while(! consume("}")) {
+      if ( (node->stmts_count) >= BLOCK_LINE_MAX) {
+        report_error("TOO MANY LINES(%d) in block", (node->stmts_count+1));
+      }
+      node->stmts[node->stmts_count] = stmt();
+      node->stmts_count++;
+    }
+    report_log(2, "--Node BLOCK end, %d lines\n", node->stmts_count);
+  } 
+  else {
     node = expr();
     if (!consume(";"))
       error_at(token->str, "';'ではないトークンです");
@@ -541,7 +576,12 @@ Node *stmt() {
 
 void program() {
   int i = 0;
-  while (!at_eof())
+  while (!at_eof()) {
+    if (i > CODE_LINE_MAX) {
+      report_error("TOO MANY LINES %d", i);
+    }
+
     code[i++] = stmt();
+  }
   code[i] = NULL;
 }

@@ -45,9 +45,11 @@ struct LVar {
 extern LVar *locals;
   
 // --- node ---
+#define BLOCK_LINE_MAX 100
 
 // 抽象構文木のノードの種類
 typedef enum {
+  ND_NONE, // None
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
@@ -64,10 +66,10 @@ typedef enum {
   //ND_ELSE, // else
   ND_WHILE, // while
   ND_FOR, // for
+  ND_BLOCK, // {} block
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
-
 
 typedef struct Node Node;
 
@@ -81,8 +83,10 @@ struct Node {
   Node *elsebody; // ifの場合、else部分
   Node *init; // forの初期化(1番目)
   Node *post; // forの続行処理(3番目)
+  Node **stmts; // blockの場合に、連続するstmtsの配列を持つ(Node * 100);
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
+  int stmts_count; // blockの場合に、含まれるstmtsの数
 };
 
 
@@ -99,7 +103,11 @@ extern Token *token;
 extern char *user_input;
 
 // --- コード全体 ---
-extern Node *code[100];
+#define CODE_LINE_MAX 100
+
+extern Node *code[CODE_LINE_MAX];
+
+
 
 // ---- code generator ---
 
