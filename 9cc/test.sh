@@ -115,7 +115,15 @@ assert 55 "sum=0; i=0; for(; i<10; ) sum=sum+(i=i+1);sum;"
 #assert 55 "sum=0; i=0; for(; ;) sum=sum+(i=i+1);sum;"  # 無限ループ
 
 # block
-#assert 55 "sum=0; for(i=1; i<=10;) { sum = sum + i; i= i+1; } return sum;"
+assert 2 "a = 1; if (a>0) {a=2;} return a;"
+assert 55 "sum=0; for(i=1; i<=10; i=i+1) { sum = sum + i;  sum = sum + 0; } return sum;"
+assert 55 "sum=0; for(i=1; i<=20; i=i+1) { sum = sum + i;  if (i>=10)  return sum; } return 95;"
+assert 55 "sum=0; for(i=1; i<=10;) { sum = sum + i; i= i+1; } return sum;"
+assert 55 "sum=0; for(i=1; ; i=i+1) { sum = sum + i; if (i>=10) return sum; } return 96;"
+assert 55 "sum=0; i=1; while(i<=10) { sum=sum+i; i=i+1; } sum;"
+assert 55 "sum=0; for(i=1; i<=12;) { sum = sum + i; i=i+1; if (i>10)  return sum; } return 98;"
+assert 55 "sum=0; i=1; for(; ;) { sum = sum + i; i= i+1; if (i> 10)  return sum;} return 99;"
+
 
 
 # ---- END ----

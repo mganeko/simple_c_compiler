@@ -126,7 +126,10 @@ void gen(Node *node) {
       fprintf(stderr, "block line(%d)\n", i);
       printf("  # -block line-\n");
       gen(node->stmts[i]);
-      printf("  pop rax\n");
+
+      // 途中の結果はスタックから取り除く（最後だけ残す）
+      if (i < node->stmts_count-1)
+        printf("  pop rax\n");
     }
     printf("  # -- end block --\n");
     return;
