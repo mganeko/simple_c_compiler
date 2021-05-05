@@ -92,6 +92,57 @@ Node *stmt() {
 
 if (!consume(';'))  // <-- 今ある関数とは違う
 
+# Step 12
+if, while for
+
+# Step 13
+block {}
+
+# Step 14
+call function
+
+## assemble test
+
+```
+# include <stdio.h>
+int foo() { printf("foo OK\n"); return 21;}
+```
+
+$ cc -c helper/outer_func.c 
+  --> ./outer_func.o
+
+-- bin
+
+$ cc -o call call.s
+
+$ ./call ; echo $?
+--> 1
+
+```
+.intel_syntax noprefix
+.globl main
+main:
+  push 1
+  pop rax
+  call foo
+  ret
+```
+
+戻り値は rbx?
+
+
+
+$ cc -o call call.s outer_func.o 
+$ ./call ; echo $?
+-->
+foo OK
+21
+
+
+
+
+
+
 
 
 

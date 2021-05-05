@@ -363,6 +363,17 @@ Node *new_node_lvar(Token *tok) {
   return node;
 }
 
+Node *new_node_func_call(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_FUNC_CALL;
+  report_log(3, "- Node FUNC_CALL len=%d ident=%s\n", tok->len, tok->str);
+  node->func_name = calloc(tok->len+1, sizeof(char));
+  strncpy(node->func_name, tok->str, tok->len);
+  report_log(1, "- Node FUNC_CALL funcname=%s\n", node->func_name);
+
+  return node;
+}
+
 Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
@@ -381,6 +392,14 @@ Node *primary() {
   // 変数（アイデンティファイヤー）か？
   Token *tok = consume_ident();
   if (tok) {
+    // --- 次が"("なら、関数 --
+    if (consume("(")) {
+      expect(")"); // まずは引数なし
+      Node *node = new_node_func_call(tok);
+      return node;
+    }
+
+    // -- そうでない場合は、変数 --
     report_log(3, "--Node IDENT\n");
     Node *node = new_node_lvar(tok);
     return node;

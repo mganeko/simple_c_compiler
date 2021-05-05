@@ -67,6 +67,7 @@ typedef enum {
   ND_WHILE, // while
   ND_FOR, // for
   ND_BLOCK, // {} block
+  ND_FUNC_CALL, // call function
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
@@ -84,6 +85,7 @@ struct Node {
   Node *init; // forの初期化(1番目)
   Node *post; // forの続行処理(3番目)
   Node **stmts; // blockの場合に、連続するstmtsの配列を持つ(Node * 100);
+  char *func_name; // call funcion()の場合、function名
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
   int stmts_count; // blockの場合に、含まれるstmtsの数

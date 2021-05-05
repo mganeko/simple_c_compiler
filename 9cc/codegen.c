@@ -145,6 +145,14 @@ void gen(Node *node) {
     return;
   }
 
+  if (node->kind == ND_FUNC_CALL) {
+    printf("  # -- func call --\n");
+    printf("  call %s\n", node->func_name);
+    printf("  push rax\n");
+    printf("  # -- end func call --\n");
+    return;
+  }
+
 
   if (node->kind == ND_NUM) {
     printf("  push %d\n", node->val);
