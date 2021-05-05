@@ -46,6 +46,7 @@ extern LVar *locals;
   
 // --- node ---
 #define BLOCK_LINE_MAX 100
+//#define FUNC_ARG_MAX 6
 
 // 抽象構文木のノードの種類
 typedef enum {
@@ -86,6 +87,7 @@ struct Node {
   Node *post; // forの続行処理(3番目)
   Node **stmts; // blockの場合に、連続するstmtsの配列を持つ(Node * 100);
   char *func_name; // call funcion()の場合、function名
+  Node *arg; // call functionの場合()の引数 (MAX 1)
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
   int stmts_count; // blockの場合に、含まれるstmtsの数

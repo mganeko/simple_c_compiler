@@ -369,7 +369,7 @@ Node *new_node_func_call(Token *tok) {
   report_log(3, "- Node FUNC_CALL len=%d ident=%s\n", tok->len, tok->str);
   node->func_name = calloc(tok->len+1, sizeof(char));
   strncpy(node->func_name, tok->str, tok->len);
-  report_log(1, "- Node FUNC_CALL funcname=%s\n", node->func_name);
+  report_log(3, "- Node FUNC_CALL funcname=%s\n", node->func_name);
 
   return node;
 }
@@ -394,19 +394,29 @@ Node *primary() {
   if (tok) {
     // --- 次が"("なら、関数 --
     if (consume("(")) {
-      expect(")"); // まずは引数なし
+      if (consume(")")) {
+        // まずは引数なし
+        report_log(2, "--parse Node FUNC_CALL, no args\n");
+        Node *node = new_node_func_call(tok);
+        return node;
+      }
+
+      // --- 引数 1つ --
+      report_log(2, "--parse Node FUNC_CALL, 1 arg\n");
       Node *node = new_node_func_call(tok);
+      node->arg = expr();
+      expect(")");
       return node;
     }
 
     // -- そうでない場合は、変数 --
-    report_log(3, "--Node IDENT\n");
+    report_log(3, "--parse Node IDENT\n");
     Node *node = new_node_lvar(tok);
     return node;
   }
 
   // そうでなければ数値のはず
-  report_log(3, "--Node NUM\n");
+  report_log(3, "--parse Node NUM\n");
   return new_node_num(expect_number());
 }
 
