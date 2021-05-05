@@ -50,6 +50,10 @@ assert 31 "for(i=1; i<=30; i=i+1) { \
   } \
 } i;"
 
+assert 3 "add(1, 2);"
+assert 4 "a=1; add(a, a+a*2);"
+
+assert 15 "a=0; sum_six(a, a+1, a+2, a+3, a+4, a+1+2*2);"
 
 # ---- END ----
 echo OK

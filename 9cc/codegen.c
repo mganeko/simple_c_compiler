@@ -147,7 +147,7 @@ void gen(Node *node) {
 
   if (node->kind == ND_FUNC_CALL) {
     printf("  # -- func call --\n");
-    if (node->arg) { // 1 arg
+    if (node->args_count > 0) { // multi args
       /*-- args --
         RDI	第1引数	✔
         RSI	第2引数	✔
@@ -156,9 +156,17 @@ void gen(Node *node) {
         R8	第5引数	✔
         R9	第6引数	✔
       ----*/
-      printf("  # - arg for func -\n");
-      gen(node->arg);
-      printf("  pop rdi\n");
+      char registers[6][4] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+      printf("  # - arg for func, args=%d -\n", node->args_count);
+      int i;
+      for (i=0; i < node->args_count; i++) { // 引数をいったんスタックに積む
+        gen(node->args[i]);
+      }
+      for (i=node->args_count-1; i >= 0; i--) { // 引数を逆順にレジスターに取り出す
+        printf("  pop %s\n", registers[i]);
+      }
+
     }
     printf("  call %s\n", node->func_name);
     printf("  push rax\n");

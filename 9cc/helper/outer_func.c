@@ -10,3 +10,6 @@ int fizz() { printf("fizz\n"); return 3; }
 int buzz() { printf("buzz\n"); return 5; }
 int fizzbuzz() { printf("fizzbuzz\n"); return 15; }
 int num(int n) { printf("%d\n", n); return n; }
+
+int add(int a, int b) { printf("add %d, %d --> %d\n", a, b, a+b); return a + b; }
+int sum_six(int a, int b, int c, int d, int e, int f) { printf("sum %d, %d, %d, %d, %d, %d\n", a, b, c, d, e, f); return a + b + c + d + e + f; }

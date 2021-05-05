@@ -224,7 +224,7 @@ Token *tokenize(char *p) {
     }
 
     // --- 四則演算子、記号 ---
-    if (strchr("+-*/()<>=;{}", *p)) {
+    if (strchr("+-*/()<>=;{},", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -401,11 +401,20 @@ Node *primary() {
         return node;
       }
 
-      // --- 引数 1つ --
-      report_log(2, "--parse Node FUNC_CALL, 1 arg\n");
+      // --- 引数あり --
+      report_log(2, "--parse Node FUNC_CALL with args\n");
       Node *node = new_node_func_call(tok);
-      node->arg = expr();
-      expect(")");
+      node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
+      node->args_count = 0;
+      while(1) {
+        if (node->args_count > FUNC_ARG_MAX) {
+          error_at(token->str, "TOO MANY func args");
+        }
+        node->args[node->args_count] = expr();
+        node->args_count++;
+        if (consume(")")) break;
+        expect(",");
+      }
       return node;
     }
 

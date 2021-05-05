@@ -128,7 +128,9 @@ main:
   ret
 ```
 
-戻り値は rbx?
+戻り値は rbx? --> rax
+
+
 
 
 
@@ -137,6 +139,18 @@ $ ./call ; echo $?
 -->
 foo OK
 21
+
+## func with args
+
+- RDI	第1引数
+- RSI	第2引数
+- RDX	第3引数
+- RCX	第4引数
+- R8	第5引数
+- R9	第6引数
+
+TODO
+- RSPが16の倍数
 
 
 
