@@ -39,7 +39,9 @@ int main(int argc, char **argv) {
   // プロローグ
   // (OLD: 変数26個分の領域を確保する)
   // DONE: 利用している変数の数だけ、領域を確保するように変更
-  int stack_offset = 8*count_lvar();
+  // DONE: 16バイト境界にそろえる
+  //int stack_offset = 8* count_lvar();
+  int stack_offset = 16 * ((int)(count_lvar()/2) + 1);
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   //printf("  sub rsp, 208\n"); // 26*8 = 208

@@ -407,7 +407,7 @@ Node *primary() {
       node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
       node->args_count = 0;
       while(1) {
-        if (node->args_count > FUNC_ARG_MAX) {
+        if (node->args_count >= FUNC_ARG_MAX) {
           error_at(token->str, "TOO MANY func args");
         }
         node->args[node->args_count] = expr();
