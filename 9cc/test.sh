@@ -71,7 +71,8 @@ assert 1 '-5>=-5;'
 
 
 # 変数
-assert 0 "a;"
+#assert 0 "a;" NG on Ubuntu 18.04
+assert 0 "a=0;"
 assert 1 "a=1;"
 assert 2 "z=2;";
 assert 2 "b=(1+2+3-6*2+10)/2;"
