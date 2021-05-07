@@ -262,7 +262,7 @@ Token *tokenize(char *p) {
     }
 
     if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
-      report_log(2, "for発見\n");
+      report_log(3, "for発見\n");
       cur = new_token(TK_FOR, cur, p, 3);
       p += 3;
       continue;
@@ -322,6 +322,7 @@ int count_lvar() {
 
 // --- node ---
 Node *expr();
+Node *stmt();
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
@@ -374,6 +375,17 @@ Node *new_node_func_call(Token *tok) {
   return node;
 }
 
+Node *new_node_func_def(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_FUNC_DEF;
+  report_log(3, "- Node FUNC_DEF len=%d ident=%s\n", tok->len, tok->str);
+  node->func_name = calloc(tok->len+1, sizeof(char));
+  strncpy(node->func_name, tok->str, tok->len);
+  report_log(3, "- Node FUNC_DEF funcname=%s\n", node->func_name);
+
+  return node;
+}
+
 Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
@@ -395,14 +407,35 @@ Node *primary() {
     // --- 次が"("なら、関数 --
     if (consume("(")) {
       if (consume(")")) {
-        // まずは引数なし
-        report_log(2, "--parse Node FUNC_CALL, no args\n");
-        Node *node = new_node_func_call(tok);
+        if (! consume("{")) {
+          // 引数なし、関数呼び出し
+          report_log(3, "--parse Node FUNC_CALL, no args\n");
+          Node *node = new_node_func_call(tok);
+          return node;
+        }
+
+        // --- 引数なし 関数定義 --- 
+        report_log(2, "--parse Node FUNC_DEF, no args\n");
+        Node *node = new_node_func_def(tok);
+        report_log(2, "--fuction body BLOCK\n");
+        Node *body = calloc(1, sizeof(Node));
+        node->body = body;
+        body->kind = ND_BLOCK;
+        body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
+        body->stmts_count = 0;
+        while(! consume("}")) {
+          if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
+            report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
+          }
+          body->stmts[body->stmts_count] = stmt();
+          body->stmts_count++;
+        }
+        report_log(2, "--func body BLOCK end, %d lines\n", body->stmts_count);
         return node;
       }
 
       // --- 引数あり --
-      report_log(2, "--parse Node FUNC_CALL with args\n");
+      report_log(3, "--parse Node FUNC_CALL with args\n");
       Node *node = new_node_func_call(tok);
       node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
       node->args_count = 0;
@@ -552,7 +585,7 @@ Node *stmt() {
     node->body = stmt();
   } 
   else if (consume_kind(TK_FOR)) {
-    report_log(2, "--Node FOR\n");
+    report_log(3, "--Node FOR\n");
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
@@ -582,10 +615,10 @@ Node *stmt() {
     }
 
     node->body = stmt();
-    report_log(2, "--Node FOR end\n");
+    report_log(3, "--Node FOR end\n");
   }
   else if (consume("{")) {
-    report_log(2, "--Node BLOCK\n");
+    report_log(3, "--Node BLOCK\n");
     node = calloc(1, sizeof(Node));
     node->kind = ND_BLOCK;
     node->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
@@ -597,10 +630,16 @@ Node *stmt() {
       node->stmts[node->stmts_count] = stmt();
       node->stmts_count++;
     }
-    report_log(2, "--Node BLOCK end, %d lines\n", node->stmts_count);
+    report_log(3, "--Node BLOCK end, %d lines\n", node->stmts_count);
   } 
   else {
     node = expr();
+    if (node->kind == ND_FUNC_DEF) {
+      // func def の場合は、";" は不要
+      return node;
+    }
+
+    // -- それ以外は、";"が必要 --
     if (!consume(";"))
       error_at(token->str, "';'ではないトークンです");
   }

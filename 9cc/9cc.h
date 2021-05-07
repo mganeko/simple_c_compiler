@@ -69,6 +69,7 @@ typedef enum {
   ND_FOR, // for
   ND_BLOCK, // {} block
   ND_FUNC_CALL, // call function
+  ND_FUNC_DEF, // define function
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
