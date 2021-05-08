@@ -157,8 +157,8 @@ TODO
 Func def
 
 - [x] return from user func
-- [ ] function local variable
-  - [ ] locals を引数にして、関数内では改めて生成する
+- [x] function local variable
+  - [x] locals を引数にして、関数内では改めて生成する
 - [ ] function args as local variable
 
 
