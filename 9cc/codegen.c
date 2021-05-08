@@ -174,6 +174,46 @@ void gen(Node *node) {
     return;
   }
 
+  if (node->kind == ND_FUNC_DEF) {
+    printf("# -- func def --\n");
+    printf("%s:\n", node->func_name);
+
+    Node *body = node->body;
+    if (body->kind != ND_BLOCK)
+      error("FUNC_DEF body is not a block\n");
+    fprintf(stderr, "-- FUNC body BLOCK, counst=%d\n", body->stmts_count);
+
+    // プロローグ
+    printf("  # -- prologue --\n");
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", 0); // default offset = 0 
+
+    int i;
+    for (i=0; i < body->stmts_count; i++) {
+      fprintf(stderr, "block line(%d)\n", i);
+      printf("  # -block line-\n");
+      gen(body->stmts[i]);
+
+      // ブロック内の途中の結果はスタックから取り除く（最後だけ残す）
+      if (i < body->stmts_count-1)
+        printf("  pop rax # stmts of func\n");
+    }
+    
+    // -- 最後の結果もスタックから取り除く(途中にreturnしていなければ、それが戻り値になる)
+    printf("  # - last value -\n");
+    printf("  pop rax\n");
+
+    // エピローグ
+    // 最後の式の結果がRAXに残っているのでそれが返り値になる
+    printf("  # -- epilogue --\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    printf("# -- end block --\n");
+    return;
+  }
+
 
   if (node->kind == ND_NUM) {
     printf("  push %d\n", node->val);

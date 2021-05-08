@@ -150,8 +150,16 @@ foo OK
 - R9	第6引数
 
 TODO
-- RSPが16の倍数
+- [x] RSPが16の倍数
 
+# Step 15
+
+Func def
+
+- [x] return from user func
+- [ ] function local variable
+  - [ ] locals を引数にして、関数内では改めて生成する
+- [ ] function args as local variable
 
 
 
