@@ -17,6 +17,9 @@
 Node *user_func[CODE_LINE_MAX];
 int user_func_count = 0;
 
+// --- top level local variable ---
+// トップレベルのローカル変数
+LVar *top_locals = NULL;
 
 
 int main(int argc, char **argv) {
@@ -33,7 +36,7 @@ int main(int argc, char **argv) {
   token = tokenize(user_input);
   fprintf(stderr, "--- after tokenize ---\n");
   //Node *node = expr();
-  program();
+  program(&top_locals);
   fprintf(stderr, "--- after program ---\n");
 
   // --- start ---
@@ -46,7 +49,8 @@ int main(int argc, char **argv) {
   // DONE: 利用している変数の数だけ、領域を確保するように変更
   // DONE: 16バイト境界にそろえる
   //int stack_offset = 8* count_lvar();
-  int stack_offset = 16 * ((int)(count_lvar()/2) + 1);
+  //int stack_offset = 16 * ((int)(count_lvar(top_locals)/2) + 1);
+  int stack_offset = 16 * ((int)(count_lvar(top_locals)+1) /2);
   printf("  # -- main prologue --\n");
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");

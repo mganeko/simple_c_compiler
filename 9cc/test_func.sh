@@ -23,20 +23,23 @@ assert_outer() {
 # define user func
 assert_outer 2 "two() { 2; } two();"
 assert_outer 2 "two() { return 2; } two();"
-#exit 0
 
 assert_outer 3 "three() { return 1+2; } three();"
-
-# use local var in func
 assert_outer 3 "three(); three() { return 3; }"
 assert_outer 3 "a=1; three(); three() { return 3; }"
+
+
+# use local var in func
 #assert_outer 3 "a=3; three(); three() { return a; }" must be NG
-assert_outer 3 "a=1; three() { b = 3; return b; } three();" #NG
-assert_outer 3 "a=1; three(); three() { b = 3; return b; }" #NG
+assert_outer 4 "a=1; aa=2; three() { b = 3; return 4; } three();"
+assert_outer 4 "a=1; three() { b = 3; return 4; } three();"
+assert_outer 3 "a=1; three() { b = 3; return b; } three();"
+assert_outer 3 "a=1; three(); three() { b = 3; return b; }"
+assert_outer 3 "a=1; three(); three() { b = 1; c =2; return b+c; }"
 
 
 # ---- END ----
-echo OK
+echo OK_part
 exit 0
 
 

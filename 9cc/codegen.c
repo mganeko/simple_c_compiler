@@ -123,7 +123,7 @@ void gen(Node *node) {
     fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
     int i;
     for (i=0; i < node->stmts_count; i++) {
-      fprintf(stderr, "block line(%d)\n", i);
+      //fprintf(stderr, "block line(%d)\n", i);
       printf("  # -block line-\n");
       gen(node->stmts[i]);
 
@@ -184,14 +184,15 @@ void gen(Node *node) {
     fprintf(stderr, "-- FUNC body BLOCK, counst=%d\n", body->stmts_count);
 
     // プロローグ
+    int stack_offset = 16 * ((int)(count_lvar(node->func_locals)+1) /2);
     printf("  # -- prologue --\n");
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", 0); // default offset = 0 
+    printf("  sub rsp, %d\n", stack_offset); 
 
     int i;
     for (i=0; i < body->stmts_count; i++) {
-      fprintf(stderr, "block line(%d)\n", i);
+      //fprintf(stderr, "block line(%d)\n", i);
       printf("  # -block line-\n");
       gen(body->stmts[i]);
 

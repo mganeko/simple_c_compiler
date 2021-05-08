@@ -34,7 +34,7 @@ void report_log(int level, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
-  //fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
 }
 
 // エラーを報告する
@@ -75,7 +75,7 @@ bool consume(char *op) {
 }
 
 void dump_token() {
-  report_log(1, "token kind=%d, len=%d str=%s \n", token->kind, token->len, token->str);
+  report_log(1, "token kind=%d, len=%d str=%s", token->kind, token->len, token->str);
 }
 
 // // 次のトークンが変数かどうかをチェック
@@ -242,27 +242,27 @@ Token *tokenize(char *p) {
     }
 
     if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
-      report_log(3, "if発見\n");
+      report_log(3, "if発見");
       cur = new_token(TK_IF, cur, p, 2);
       p += 2;
-      report_log(3, "if切り出し\n");
+      report_log(3, "if切り出し");
       continue;
     }
     if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
-      report_log(3, "else発見\n");
+      report_log(3, "else発見");
       cur = new_token(TK_ELSE, cur, p, 4);
       p += 4;
       continue;
     }
     if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
-      report_log(3, "while発見\n");
+      report_log(3, "while発見");
       cur = new_token(TK_WHILE, cur, p, 5);
       p += 5;
       continue;
     }
 
     if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
-      report_log(3, "for発見\n");
+      report_log(3, "for発見");
       cur = new_token(TK_FOR, cur, p, 3);
       p += 3;
       continue;
@@ -295,12 +295,13 @@ Token *tokenize(char *p) {
 
 // --- local variable ---
 // ローカル変数
-LVar *locals = NULL;
+//LVar *top_locals = NULL;
 
 
 // --- local variable ---
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok) {
+LVar *find_lvar(Token *tok, LVar **locals_ptr) {
+  LVar *locals = *locals_ptr;
   for (LVar *var = locals; var; var = var->next) {
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
@@ -310,7 +311,7 @@ LVar *find_lvar(Token *tok) {
 }
 
 // ローカル変数の数を返す
-int count_lvar() {
+int count_lvar(LVar *locals) {
   int count = 0;
   for (LVar *var = locals; var; var = var->next) {
     count++;
@@ -321,8 +322,8 @@ int count_lvar() {
 
 
 // --- node ---
-Node *expr();
-Node *stmt();
+Node *expr(LVar **locals_ptr);
+Node *stmt(LVar **locals_ptr);
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
@@ -339,11 +340,12 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
 //   return node;
 // }
 
-Node *new_node_lvar(Token *tok) {
+Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_LVAR;
 
-  LVar *lvar = find_lvar(tok);
+  LVar *locals = *locals_ptr;
+  LVar *lvar = find_lvar(tok, locals_ptr);
   if (lvar) {
     node->offset = lvar->offset;
   } else {
@@ -352,13 +354,17 @@ Node *new_node_lvar(Token *tok) {
     lvar->name = tok->str;
     lvar->len = tok->len;
     if (locals) {
+      report_log(4, "--next variable--");
       lvar->offset = locals->offset + 8;
     }
     else {
-      lvar->offset = 0;
+      report_log(4, "--1st variable--");
+      lvar->offset = 8; // NG0;
     }
     node->offset = lvar->offset;
     locals = lvar;
+    *locals_ptr = lvar;
+    report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
   }
 
   return node;
@@ -367,10 +373,10 @@ Node *new_node_lvar(Token *tok) {
 Node *new_node_func_call(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC_CALL;
-  report_log(3, "- Node FUNC_CALL len=%d ident=%s\n", tok->len, tok->str);
+  report_log(3, "- Node FUNC_CALL len=%d ident=%s", tok->len, tok->str);
   node->func_name = calloc(tok->len+1, sizeof(char));
   strncpy(node->func_name, tok->str, tok->len);
-  report_log(3, "- Node FUNC_CALL funcname=%s\n", node->func_name);
+  report_log(3, "- Node FUNC_CALL funcname=%s", node->func_name);
 
   return node;
 }
@@ -378,10 +384,10 @@ Node *new_node_func_call(Token *tok) {
 Node *new_node_func_def(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC_DEF;
-  report_log(3, "- Node FUNC_DEF len=%d ident=%s\n", tok->len, tok->str);
+  report_log(3, "- Node FUNC_DEF len=%d ident=%s", tok->len, tok->str);
   node->func_name = calloc(tok->len+1, sizeof(char));
   strncpy(node->func_name, tok->str, tok->len);
-  report_log(3, "- Node FUNC_DEF funcname=%s\n", node->func_name);
+  report_log(3, "- Node FUNC_DEF funcname=%s", node->func_name);
 
   return node;
 }
@@ -393,10 +399,10 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *primary() {
+Node *primary(LVar **locals_ptr) {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
-    Node *node = expr();
+    Node *node = expr(locals_ptr);
     expect(")");
     return node;
   }
@@ -409,15 +415,15 @@ Node *primary() {
       if (consume(")")) {
         if (! consume("{")) {
           // 引数なし、関数呼び出し
-          report_log(3, "--parse Node FUNC_CALL, no args\n");
+          report_log(3, "--parse Node FUNC_CALL, no args");
           Node *node = new_node_func_call(tok);
           return node;
         }
 
         // --- 引数なし 関数定義 --- 
-        report_log(2, "--parse Node FUNC_DEF, no args\n");
+        report_log(2, "--parse Node FUNC_DEF, no args");
         Node *node = new_node_func_def(tok);
-        report_log(2, "--fuction body BLOCK\n");
+        report_log(2, "--fuction body BLOCK");
         Node *body = calloc(1, sizeof(Node));
         node->body = body;
         body->kind = ND_BLOCK;
@@ -427,165 +433,174 @@ Node *primary() {
           if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
             report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
           }
-          body->stmts[body->stmts_count] = stmt();
+          report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
+          body->stmts[body->stmts_count] = stmt(&(node->func_locals));
           body->stmts_count++;
         }
-        report_log(2, "--func body BLOCK end, %d lines\n", body->stmts_count);
+        report_log(2, "--func body BLOCK end, %d lines", body->stmts_count);
         return node;
       }
 
       // --- 引数あり --
-      report_log(3, "--parse Node FUNC_CALL with args\n");
-      Node *node = new_node_func_call(tok);
+      report_log(3, "--parse Node FUNC_CALL/FUNC_DEF with args");
+      Node *node = new_node_func_call(tok); // いったん、FUNC_CALLとして扱う
       node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
       node->args_count = 0;
       while(1) {
         if (node->args_count >= FUNC_ARG_MAX) {
           error_at(token->str, "TOO MANY func args");
         }
-        node->args[node->args_count] = expr();
+        node->args[node->args_count] = expr(locals_ptr);
         node->args_count++;
         if (consume(")")) break;
         expect(",");
       }
+      if (! consume("{")) {
+        // FUNC_CALL 確定
+        report_log(3, "--Node desided as FUNC_CALL with args");
+        return node;
+      }
+
+      // --- 引数あり 関数定義 ---  
+      report_log(3, "--Node desided as FUNC_DEF with args");
       return node;
     }
 
     // -- そうでない場合は、変数 --
-    report_log(3, "--parse Node IDENT\n");
-    Node *node = new_node_lvar(tok);
+    report_log(3, "--parse Node IDENT");
+    Node *node = new_node_lvar(tok, locals_ptr);
     return node;
   }
 
   // そうでなければ数値のはず
-  report_log(3, "--parse Node NUM\n");
+  report_log(3, "--parse Node NUM");
   return new_node_num(expect_number());
 }
 
-Node *unary() {
+Node *unary(LVar **locals_ptr) {
   if (consume("+"))
-    return primary();
+    return primary(locals_ptr);
   if (consume("-"))
-    return new_node(ND_SUB, new_node_num(0), primary());
-  return primary();
+    return new_node(ND_SUB, new_node_num(0), primary(locals_ptr));
+  return primary(locals_ptr);
 }
 
-Node *mul() {
-  Node *node = unary();
+Node *mul(LVar **locals_ptr) {
+  Node *node = unary(locals_ptr);
 
   for (;;) {
     if (consume("*"))
-      node = new_node(ND_MUL, node, unary());
+      node = new_node(ND_MUL, node, unary(locals_ptr));
     else if (consume("/"))
-      node = new_node(ND_DIV, node, unary());
+      node = new_node(ND_DIV, node, unary(locals_ptr));
     else
       return node;
   }
 }
 
-Node *add() {
-  Node *node = mul();
+Node *add(LVar **locals_ptr) {
+  Node *node = mul(locals_ptr);
 
   for (;;) {
     if (consume("+"))
-      node = new_node(ND_ADD, node, mul());
+      node = new_node(ND_ADD, node, mul(locals_ptr));
     else if (consume("-"))
-      node = new_node(ND_SUB, node, mul());
+      node = new_node(ND_SUB, node, mul(locals_ptr));
     else
       return node;
   }
 }
 
-Node *relational() {
-  Node *node = add();
+Node *relational(LVar **locals_ptr) {
+  Node *node = add(locals_ptr);
 
   for (;;) {
     if (consume("<"))
-      node = new_node(ND_LT, node, add());
+      node = new_node(ND_LT, node, add(locals_ptr));
     else if (consume("<="))
-      node = new_node(ND_LE, node, add());
+      node = new_node(ND_LE, node, add(locals_ptr));
     else if (consume(">"))
-      node = new_node(ND_GT, node, add());
+      node = new_node(ND_GT, node, add(locals_ptr));
     else if (consume(">="))
-      node = new_node(ND_GE, node, add());
+      node = new_node(ND_GE, node, add(locals_ptr));
     else
       return node;
   }
 }
 
-Node *equality() {
-  Node *node = relational();
+Node *equality(LVar **locals_ptr) {
+  Node *node = relational(locals_ptr);
 
   for (;;) {
     if (consume("==")) 
-      node = new_node(ND_EQ, node, relational());
+      node = new_node(ND_EQ, node, relational(locals_ptr));
     else if (consume("!="))
-      node = new_node(ND_NE, node, relational());
+      node = new_node(ND_NE, node, relational(locals_ptr));
     else
       return node;
   }
 }
 
-Node *assign() {
-  Node *node = equality();
+Node *assign(LVar **locals_ptr) {
+  Node *node = equality(locals_ptr);
   if (consume("=")) {
-    report_log(3, "--Node =\n");
-    node = new_node(ND_ASSIGN, node, equality());
+    report_log(3, "--Node =");
+    node = new_node(ND_ASSIGN, node, equality(locals_ptr));
   }
 
   return node;
 }
 
 
-Node *expr() {
-  Node *node = assign();
+Node *expr(LVar **locals_ptr) {
+  Node *node = assign(locals_ptr);
   return node;
 }
 
-Node *stmt() {
+Node *stmt(LVar **locals_ptr) {
   // Node *node = expr();
   // expect(";");
 
   Node *node = NULL;
 
   if (consume_kind(TK_RETURN)) {
-    report_log(3, "--Node RETURN\n");
+    report_log(3, "--Node RETURN");
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
-    node->lhs = expr();
+    node->lhs = expr(locals_ptr);
 
     if (!consume(";"))
       error_at(token->str, "';'ではないトークンです");
   } else if (consume_kind(TK_IF)) {
-    report_log(3, "--Node IF\n");
+    report_log(3, "--Node IF");
 
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_IF;
-    node->cond = expr();
+    node->cond = expr(locals_ptr);
     expect(")");
-    node->body = stmt();
+    node->body = stmt(locals_ptr);
 
     // -- check else --
     if (consume_kind(TK_ELSE)) {
-      report_log(3, "--Node ELSE\n");
+      report_log(3, "--Node ELSE");
 
-      node->elsebody = stmt();
+      node->elsebody = stmt(locals_ptr);
     }
     else {
       node->elsebody = NULL;
     }
   } else if (consume_kind(TK_WHILE)) {
-    report_log(3, "--Node WHILE\n");
+    report_log(3, "--Node WHILE");
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_WHILE;
-    node->cond = expr();
+    node->cond = expr(locals_ptr);
     expect(")");
-    node->body = stmt();
+    node->body = stmt(locals_ptr);
   } 
   else if (consume_kind(TK_FOR)) {
-    report_log(3, "--Node FOR\n");
+    report_log(3, "--Node FOR");
     expect("(");
     node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
@@ -594,7 +609,7 @@ Node *stmt() {
       node->init = NULL; // init expr がないケースもある
     }
     else {
-      node->init = expr(); 
+      node->init = expr(locals_ptr); 
       expect(";");
     }
 
@@ -602,7 +617,7 @@ Node *stmt() {
       node->cond = NULL; // cond expr がないケースもある
     }
     else {
-      node->cond = expr();
+      node->cond = expr(locals_ptr);
       expect(";");
     }
 
@@ -610,15 +625,15 @@ Node *stmt() {
       node->post = NULL; // post expr がないケースもある
     }
     else {
-      node->post = expr(); // post expr がないケースもある
+      node->post = expr(locals_ptr); // post expr がないケースもある
       expect(")");
     }
 
-    node->body = stmt();
-    report_log(3, "--Node FOR end\n");
+    node->body = stmt(locals_ptr);
+    report_log(3, "--Node FOR end");
   }
   else if (consume("{")) {
-    report_log(3, "--Node BLOCK\n");
+    report_log(3, "--Node BLOCK");
     node = calloc(1, sizeof(Node));
     node->kind = ND_BLOCK;
     node->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
@@ -627,13 +642,13 @@ Node *stmt() {
       if ( (node->stmts_count) >= BLOCK_LINE_MAX) {
         report_error("TOO MANY LINES(%d) in block", (node->stmts_count+1));
       }
-      node->stmts[node->stmts_count] = stmt();
+      node->stmts[node->stmts_count] = stmt(locals_ptr);
       node->stmts_count++;
     }
-    report_log(3, "--Node BLOCK end, %d lines\n", node->stmts_count);
+    report_log(3, "--Node BLOCK end, %d lines", node->stmts_count);
   } 
   else {
-    node = expr();
+    node = expr(locals_ptr);
     if (node->kind == ND_FUNC_DEF) {
       // func def の場合は、";" は不要
       return node;
@@ -651,14 +666,14 @@ Node *stmt() {
   return node;
 }
 
-void program() {
+void program(LVar **locals_ptr) {
   int i = 0;
   while (!at_eof()) {
     if (i > CODE_LINE_MAX) {
       report_error("TOO MANY LINES %d", i);
     }
 
-    code[i++] = stmt();
+    code[i++] = stmt(locals_ptr);
   }
   code[i] = NULL;
 }
