@@ -13,14 +13,18 @@ Docker Imageビルド
 $ docker build -t compilerbook https://www.sigbus.info/compilerbook/Dockerfile
 ```
 
-or 
+or Dockerfileで、明示的にamd64を指定
 
 ```
 $ docker build -t compilerbook .
 ```
 
-Dockerfileで、明示的にamd64を指定
 
+or オプションでプラットフォームを指定
+
+```
+$ docker build --platform linux/amd64 -t compilerbook0 -f Dockerfile_0 .
+```
 
 
 Dockerで実行
