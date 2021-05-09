@@ -42,8 +42,9 @@ int main(int argc, char **argv) {
   // --- start ---
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
-  printf("main:\n");
 
+
+  /*--- mainも関数として生成される ---
   // プロローグ
   // (OLD: 変数26個分の領域を確保する)
   // DONE: 利用している変数の数だけ、領域を確保するように変更
@@ -51,12 +52,14 @@ int main(int argc, char **argv) {
   //int stack_offset = 8* count_lvar();
   //int stack_offset = 16 * ((int)(count_lvar(top_locals)/2) + 1);
   int stack_offset = 16 * ((int)(count_lvar(top_locals)+1) /2);
+  printf("main:\n");
   printf("  # -- main prologue --\n");
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   //printf("  sub rsp, 208\n"); // 26*8 = 208
   printf("  sub rsp, %d\n", stack_offset); 
   printf("  # -- main body --\n");
+  --- mainも関数として生成される ---*/
 
   // --- 抽象構文木を下りながらコード生成 ---
   // 先頭の式から順にコード生成
@@ -81,12 +84,14 @@ int main(int argc, char **argv) {
     }
   }
 
+  /*--- mainも関数として生成される ---
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値になる
   printf("  # -- main epilogue --\n");
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
   printf("  ret\n");
+  --- mainも関数として生成される ---*/
 
   // --- ユーザー定義関数を生成する ---
   for (int i = 0; user_func[i]; i++) {

@@ -8,6 +8,8 @@
 #include "9cc.h"
 
 
+// -- 現在の関数レベル --
+int parse_level = 0; // 0:top, 1: in func
 
 // 現在着目しているトークン 
 Token *token;
@@ -392,6 +394,11 @@ Node *new_node_func_def(Token *tok) {
   return node;
 }
 
+Node *convert_func_call_to_def(Node* node) {
+  node->kind = ND_FUNC_DEF;
+  return node;
+}
+
 Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
@@ -412,57 +419,117 @@ Node *primary(LVar **locals_ptr) {
   if (tok) {
     // --- 次が"("なら、関数 --
     if (consume("(")) {
-      if (consume(")")) {
-        if (! consume("{")) {
+      if (parse_level == 1) {
+        // -- 関数内部 --
+        if (consume(")")) {
           // 引数なし、関数呼び出し
           report_log(3, "--parse Node FUNC_CALL, no args");
           Node *node = new_node_func_call(tok);
           return node;
         }
 
-        // --- 引数なし 関数定義 --- 
-        report_log(2, "--parse Node FUNC_DEF, no args");
-        Node *node = new_node_func_def(tok);
-        report_log(2, "--fuction body BLOCK");
-        Node *body = calloc(1, sizeof(Node));
-        node->body = body;
-        body->kind = ND_BLOCK;
-        body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
-        body->stmts_count = 0;
-        while(! consume("}")) {
-          if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
-            report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
+        // --- 引数あり --
+        report_log(3, "--parse Node FUNC_CALL with args");
+        Node *node = new_node_func_call(tok);
+        node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
+        node->args_count = 0;
+        while(1) {
+          if (node->args_count >= FUNC_ARG_MAX) {
+            error_at(token->str, "TOO MANY func args");
           }
-          report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
-          body->stmts[body->stmts_count] = stmt(&(node->func_locals));
-          body->stmts_count++;
+          node->args[node->args_count] = expr(locals_ptr);
+          node->args_count++;
+          if (consume(")")) break;
+          expect(",");
         }
-        report_log(2, "--func body BLOCK end, %d lines", body->stmts_count);
+        report_log(3, "--parse Node FUNC_CALL end, with args=%d", node->args_count);
         return node;
       }
 
-      // --- 引数あり --
-      report_log(3, "--parse Node FUNC_CALL/FUNC_DEF with args");
-      Node *node = new_node_func_call(tok); // いったん、FUNC_CALLとして扱う
+      if (parse_level == 0) {
+        // -- 関数定義 --
+        if (consume(")")) {
+          // --- 引数なし 関数定義 --- 
+          report_log(3, "--parse Node FUNC_DEF, no args");
+          parse_level = 1;
+          expect("{");
+
+          Node *node = new_node_func_def(tok);
+          report_log(3, "--fuction body BLOCK");
+          Node *body = calloc(1, sizeof(Node));
+          node->body = body;
+          body->kind = ND_BLOCK;
+          body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
+          body->stmts_count = 0;
+          while(! consume("}")) {
+            if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
+              report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
+            }
+            report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
+            body->stmts[body->stmts_count] = stmt(&(node->func_locals));
+            body->stmts_count++;
+            report_log(3, "--func body line %d", body->stmts_count);
+          }
+          report_log(3, "--func body BLOCK end, %d lines", body->stmts_count);
+
+          parse_level = 0;
+          return node;
+        }
+
+        else if (parse_level == 1) {
+          // 関数内部
+          // 引数なし、関数呼び出し
+          report_log(3, "--parse Node FUNC_CALL, no args");
+          Node *node = new_node_func_call(tok);
+          return node;
+        }
+      }
+
+      // --- 引数あり 関数定義 ---  
+      report_log(2, "--parse Node  FUNC_DEF with args");
+      Node *node = new_node_func_def(tok);
+      //report_error("NOT SUPPORTED YET");
       node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
       node->args_count = 0;
       while(1) {
         if (node->args_count >= FUNC_ARG_MAX) {
           error_at(token->str, "TOO MANY func args");
         }
-        node->args[node->args_count] = expr(locals_ptr);
+
+        // 変数（アイデンティファイヤー）か？
+        Token *tok = consume_ident();
+        if (! tok) report_error(token->str, "NOT ARG var");
+
+        Node *arg = new_node_lvar(tok, &(node->func_locals));
+        report_log(3, "find Arg offset=%d", arg->offset);
+        node->args[node->args_count] = arg;
         node->args_count++;
         if (consume(")")) break;
         expect(",");
       }
-      if (! consume("{")) {
-        // FUNC_CALL 確定
-        report_log(3, "--Node desided as FUNC_CALL with args");
-        return node;
-      }
 
-      // --- 引数あり 関数定義 ---  
-      report_log(3, "--Node desided as FUNC_DEF with args");
+      parse_level = 1;
+      expect("{");
+      report_log(2, "--fuction body BLOCK");
+      Node *body = calloc(1, sizeof(Node));
+      node->body = body;
+      body->kind = ND_BLOCK;
+      body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
+      body->stmts_count = 0;
+      while(! consume("}")) {
+        if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
+          report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
+        }
+        report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
+        body->stmts[body->stmts_count] = stmt(&(node->func_locals));
+        body->stmts_count++;
+        report_log(3, "--func body line %d", body->stmts_count);
+      }
+      report_log(3, "--func body BLOCK end, %d lines", body->stmts_count);
+
+      parse_level = 0;
+      report_log(3, "--parse Node FUNC_DEF end, with args=%d", node->args_count);
+
       return node;
     }
 
