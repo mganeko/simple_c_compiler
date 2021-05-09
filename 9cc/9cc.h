@@ -42,7 +42,7 @@ struct LVar {
 };
 
 // ローカル変数
-extern LVar *locals;
+//extern LVar *locals;
   
 // --- node ---
 #define BLOCK_LINE_MAX 100
@@ -69,6 +69,7 @@ typedef enum {
   ND_FOR, // for
   ND_BLOCK, // {} block
   ND_FUNC_CALL, // call function
+  ND_FUNC_DEF, // define function
   ND_LVAR,   // ローカル変数
   ND_NUM, // 整数
 } NodeKind;
@@ -81,15 +82,16 @@ struct Node {
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   Node *cond; // if/whileの条件, forの条件(2番目)
-  Node *body; // 実行部 (ifのthen, while/forの実行部)
+  Node *body; // 実行部 (ifのthen, while/forの実行部, func defの中身)
   Node *elsebody; // ifの場合、else部分
   Node *init; // forの初期化(1番目)
   Node *post; // forの続行処理(3番目)
   Node **stmts; // blockの場合に、連続するstmtsの配列を持つ(Node * 100);
   int stmts_count; // blockの場合に、含まれるstmtsの数
-  char *func_name; // call funcion()の場合、function名
-  Node **args; // call function()の場合の引数の配列 (MAX 6)
-  int args_count; // call function()の場合の引数の数
+  char *func_name; // call/def funcion()の場合、function名
+  Node **args; // call/def function()の場合の引数の配列 (MAX 6)
+  int args_count; // call/def function()の場合の引数の数
+  LVar *func_locals; // def function()の場合に、関数内のローカル変数 
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
 
@@ -97,10 +99,10 @@ struct Node {
 
 
 //Node *expr();
-void program();
+void program(LVar **locals_ptr);
 
 // ローカル変数の数を返す
-int count_lvar();
+int count_lvar(LVar *locals);
  
 // 現在着目しているトークン （外部を参照）
 extern Token *token;

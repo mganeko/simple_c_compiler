@@ -29,6 +29,16 @@ void gen_lval(Node *node) {
 int label_index = 0;
 
 void gen(Node *node) {
+  /*-- func args --
+    RDI	第1引数	✔
+    RSI	第2引数	✔
+    RDX	第3引数	✔
+    RCX	第4引数	✔
+    R8	第5引数	✔
+    R9	第6引数	✔
+  ----*/
+  char registers[6][4] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
   int current_label;
   if (node->kind == ND_IF) {
     printf("  # -- start if --\n");
@@ -120,10 +130,10 @@ void gen(Node *node) {
 
   if (node->kind == ND_BLOCK) {
     printf("  # -- start block --\n");
-    fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
+    //fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
     int i;
     for (i=0; i < node->stmts_count; i++) {
-      fprintf(stderr, "block line(%d)\n", i);
+      //fprintf(stderr, "block line(%d)\n", i);
       printf("  # -block line-\n");
       gen(node->stmts[i]);
 
@@ -148,16 +158,6 @@ void gen(Node *node) {
   if (node->kind == ND_FUNC_CALL) {
     printf("  # -- func call --\n");
     if (node->args_count > 0) { // multi args
-      /*-- args --
-        RDI	第1引数	✔
-        RSI	第2引数	✔
-        RDX	第3引数	✔
-        RCX	第4引数	✔
-        R8	第5引数	✔
-        R9	第6引数	✔
-      ----*/
-      char registers[6][4] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-
       printf("  # - arg for func, args=%d -\n", node->args_count);
       int i;
       for (i=0; i < node->args_count; i++) { // 引数をいったんスタックに積む
@@ -171,6 +171,62 @@ void gen(Node *node) {
     printf("  call %s\n", node->func_name);
     printf("  push rax\n");
     printf("  # -- end func call --\n");
+    return;
+  }
+
+  if (node->kind == ND_FUNC_DEF) {
+    printf("# -- func def --\n");
+    printf("%s:\n", node->func_name);
+
+    Node *body = node->body;
+    if (body->kind != ND_BLOCK)
+      error("FUNC_DEF body is not a block\n");
+    //fprintf(stderr, "-- FUNC body BLOCK, args=%d lines=%d\n", node->args_count, body->stmts_count);
+
+    // プロローグ
+    int var_count = count_lvar(node->func_locals); // + node->args_count;
+    int stack_offset = 16 * ((int)(var_count+1) /2);
+    printf("  # -- prologue --\n");
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", stack_offset); 
+
+    // -- 引数をレジスターからスタック上のローカル変数にセット --
+    if (node->args_count > 0) {
+      printf("  # -- setup args cound=%d --\n", node->args_count);
+      for (int i=0; i < node->args_count; i++) {
+        Node* arg = node->args[i];
+        if( arg->kind != ND_LVAR)
+          error("arg is NOT LVAR");
+        printf("  # - arg %d -\n", i+1);
+        printf("  mov rax, rbp\n");
+        printf("  sub rax, %d\n", arg->offset);
+        printf("  mov [rax], %s\n", registers[i]);
+      }
+    }
+
+    int i;
+    for (i=0; i < body->stmts_count; i++) {
+      //fprintf(stderr, "block line(%d)\n", i);
+      printf("  # -block line-\n");
+      gen(body->stmts[i]);
+
+      // ブロック内の途中の結果はスタックから取り除く（最後だけ残す）
+      if (i < body->stmts_count-1)
+        printf("  pop rax # stmts of func\n");
+    }
+    
+    // -- 最後の結果もスタックから取り除く(途中にreturnしていなければ、それが戻り値になる)
+    printf("  # - last value -\n");
+    printf("  pop rax\n");
+
+    // エピローグ
+    // 最後の式の結果がRAXに残っているのでそれが返り値になる
+    printf("  # -- epilogue --\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    printf("# -- end block --\n");
     return;
   }
 
