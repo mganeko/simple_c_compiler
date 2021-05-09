@@ -130,7 +130,7 @@ void gen(Node *node) {
 
   if (node->kind == ND_BLOCK) {
     printf("  # -- start block --\n");
-    fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
+    //fprintf(stderr, "-- Node BLOCK, counst=%d\n", node->stmts_count);
     int i;
     for (i=0; i < node->stmts_count; i++) {
       //fprintf(stderr, "block line(%d)\n", i);
@@ -181,7 +181,7 @@ void gen(Node *node) {
     Node *body = node->body;
     if (body->kind != ND_BLOCK)
       error("FUNC_DEF body is not a block\n");
-    fprintf(stderr, "-- FUNC body BLOCK, args=%d lines=%d\n", node->args_count, body->stmts_count);
+    //fprintf(stderr, "-- FUNC body BLOCK, args=%d lines=%d\n", node->args_count, body->stmts_count);
 
     // プロローグ
     int var_count = count_lvar(node->func_locals); // + node->args_count;

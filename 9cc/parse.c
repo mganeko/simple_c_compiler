@@ -486,7 +486,7 @@ Node *primary(LVar **locals_ptr) {
       }
 
       // --- 引数あり 関数定義 ---  
-      report_log(2, "--parse Node  FUNC_DEF with args");
+      report_log(3, "--parse Node  FUNC_DEF with args");
       Node *node = new_node_func_def(tok);
       //report_error("NOT SUPPORTED YET");
       node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
@@ -510,7 +510,7 @@ Node *primary(LVar **locals_ptr) {
 
       parse_level = 1;
       expect("{");
-      report_log(2, "--fuction body BLOCK");
+      report_log(3, "--fuction body BLOCK");
       Node *body = calloc(1, sizeof(Node));
       node->body = body;
       body->kind = ND_BLOCK;

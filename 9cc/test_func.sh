@@ -19,9 +19,10 @@ assert_outer() {
 
 
 
+# ------------
 
-
-
+#echo OK_part
+#exit 0
 
 # ------------
 
@@ -93,6 +94,30 @@ assert_outer 2 "twice(x) { return x*2; } main() {twice(1);}"
 assert_outer 3 "add(x, y) { return x+y; } main() {a=1; add(a, 1+1);}"
 assert_outer 6 "add(x, y) { return x+y; } main() {x=1; add(5, x);}"
 
+assert_outer 31 " mod(x, base) { return x - (x/base)*base; }   \
+main() { \
+ for(i=1; i<=30; i=i+1) { \
+  mod_t = i - (i/3)*3; mod_f = i - (i/5)*5; \
+  if (mod_t == 0) { \
+    if (mod_f == 0) fizzbuzz(); \
+    else fizz(); \
+  } \
+  else {
+    if (mod_f == 0) buzz(); \
+    else num(i); \
+  } \
+ } i; }"
+
+
+assert_outer 34 "fib(x) { \
+  if (x <= 1) { return x; } \
+  else { return fib(x - 1) + fib(x - 2); } \
+}\
+main() { \
+  f = 0;
+  for (i=0; i < 10; i=i+1) { f=fib(i); num(f); } \
+  return f; \
+}"
 
 # ---- END ----
 echo OK
