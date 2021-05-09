@@ -163,7 +163,7 @@ Func def
 - [x] return from user func
 - [x] function local variable
   - [x] locals を引数にして、関数内では改めて生成する
-- [ ] function args as local variable
+- [x] function args as local variable
 
 
 

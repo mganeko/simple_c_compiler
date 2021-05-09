@@ -34,10 +34,9 @@ int main(int argc, char **argv) {
 
   // トークナイズする
   token = tokenize(user_input);
-  fprintf(stderr, "--- after tokenize ---\n");
-  //Node *node = expr();
+  //fprintf(stderr, "--- after tokenize ---\n");
   program(&top_locals);
-  fprintf(stderr, "--- after program ---\n");
+  //fprintf(stderr, "--- after program ---\n");
 
   // --- start ---
   printf(".intel_syntax noprefix\n");
@@ -97,7 +96,7 @@ int main(int argc, char **argv) {
   for (int i = 0; user_func[i]; i++) {
     Node *node = user_func[i];
     if (node->kind == ND_FUNC_DEF) {
-      fprintf(stderr, "-- generating function name=%s\n", node->func_name);
+      //fprintf(stderr, "-- generating function name=%s\n", node->func_name);
       gen(node);
     }
   }
