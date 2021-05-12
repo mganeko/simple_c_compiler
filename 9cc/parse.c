@@ -226,7 +226,7 @@ Token *tokenize(char *p) {
     }
 
     // --- 四則演算子、記号 ---
-    if (strchr("+-*/()<>=;{},", *p)) {
+    if (strchr("+-*/()<>=;{},&", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -549,6 +549,11 @@ Node *unary(LVar **locals_ptr) {
     return primary(locals_ptr);
   if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), primary(locals_ptr));
+  if (consume("*"))
+    return new_node(ND_DEREF, unary(locals_ptr), NULL);
+  if (consume("&"))
+    return new_node(ND_ADDR, unary(locals_ptr), NULL);
+
   return primary(locals_ptr);
 }
 

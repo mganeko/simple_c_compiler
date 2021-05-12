@@ -258,6 +258,22 @@ void gen(Node *node) {
     return;
   }
 
+  // アドレス &
+  if (node->kind == ND_ADDR) {
+    gen_lval(node->lhs);
+    return;
+  }
+
+  // アドレスの指す中身 *
+  if (node->kind == ND_DEREF) {
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+    return;
+  }
+
+
   // --- 演算子 ----
   if (node->lhs && node->rhs) {
     gen(node->lhs);

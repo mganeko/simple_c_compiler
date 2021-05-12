@@ -71,6 +71,8 @@ typedef enum {
   ND_FUNC_CALL, // call function
   ND_FUNC_DEF, // define function
   ND_LVAR,   // ローカル変数
+  ND_ADDR, // アドレス　&
+  ND_DEREF, // アドレスの指す中身 *
   ND_NUM, // 整数
 } NodeKind;
 
