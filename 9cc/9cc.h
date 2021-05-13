@@ -11,6 +11,7 @@ typedef enum {
   TK_WHILE,     // while
   TK_FOR,       // for
   TK_NUM,       // 整数トークン
+  TK_TYPE_INT,  // int型
   TK_EOF,       // 入力の終わりを表すトークン
 } TokenKind;
 

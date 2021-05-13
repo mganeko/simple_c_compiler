@@ -239,6 +239,10 @@ assert 2 "main() { a=1; b=&a; a=2; return *b;}"
 assert 3 "main() { x = 3; y = 5; z = &y + 8; return *z;}"
 assert 6 "main() { x = 3; y = &x; z = y; return *z * 2;}"
 
+# --- type int ---
+
+assert 1 "main() { int a; a=1; return a;}"
+assert 2 "main() { int a; int b; a=1; b=a+1; return b;}"
 
 # ---- END ----
 echo OK

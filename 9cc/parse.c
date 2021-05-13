@@ -231,6 +231,15 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // ==== 型宣言 =====
+    // -- int --
+    if (strncmp(p, "int", 3) == 0 && !is_alnum(p[3])) {
+      report_log(2, "int発見");
+      cur = new_token(TK_TYPE_INT, cur, p, 3);
+      p += 3;
+      continue;
+    }
+
     // ==== 予約語 =====
     // -- return --
     if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
@@ -322,6 +331,32 @@ int count_lvar(LVar *locals) {
   return count;
 }
 
+// 新しい変数を宣言する
+LVar *decl_new_lvar(Token *tok, LVar **locals_ptr) {
+  if (find_lvar(tok, locals_ptr))
+    error_at(tok->str, "すでに変数が宣言されています");
+  
+  LVar *locals = *locals_ptr;
+  LVar *lvar = calloc(1, sizeof(LVar));
+  lvar->next = locals;
+  lvar->name = tok->str;
+  lvar->len = tok->len;
+  if (locals) {
+    report_log(4, "--next variable--");
+    lvar->offset = locals->offset + 8;
+  }
+  else {
+    report_log(4, "--1st variable--");
+    lvar->offset = 8; // NG0;
+  }
+
+  locals = lvar;
+  *locals_ptr = lvar;
+  report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
+
+  return lvar;
+}
+
 
 // --- node ---
 Node *expr(LVar **locals_ptr);
@@ -350,7 +385,11 @@ Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
   LVar *lvar = find_lvar(tok, locals_ptr);
   if (lvar) {
     node->offset = lvar->offset;
-  } else {
+    return node;
+  }
+  
+  /*
+   else {
     lvar = calloc(1, sizeof(LVar));
     lvar->next = locals;
     lvar->name = tok->str;
@@ -370,6 +409,10 @@ Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
   }
 
   return node;
+  */
+
+  // -- 変数が未定義 --
+  error_at(tok->str, "変数が未定義です");
 }
 
 Node *new_node_func_call(Token *tok) {
@@ -635,7 +678,25 @@ Node *stmt(LVar **locals_ptr) {
 
   Node *node = NULL;
 
-  if (consume_kind(TK_RETURN)) {
+  if (consume_kind(TK_TYPE_INT)) {
+    report_log(2, "stmt() int");
+
+    // 変数（アイデンティファイヤー）か？
+    Token *tok = consume_ident();
+    if (! tok)
+      error_at(token->str, "intの後が変数名ではありません");
+  
+
+    if (!consume(";"))
+      error_at(token->str, "';'ではないトークンです");
+
+    // -- 変数宣言 --
+    report_log(2, "stmt() decl_new_lvar");
+    decl_new_lvar(tok, locals_ptr);
+    report_log(2, "stmt() new_node_lvar");
+    node = new_node_lvar(tok, locals_ptr);
+  }
+  else if (consume_kind(TK_RETURN)) {
     report_log(3, "--Node RETURN");
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
