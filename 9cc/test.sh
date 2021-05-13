@@ -237,6 +237,7 @@ main() { \
 
 assert 2 "main() { a=1; b=&a; a=2; return *b;}"
 assert 3 "main() { x = 3; y = 5; z = &y + 8; return *z;}"
+assert 6 "main() { x = 3; y = &x; z = y; return *z * 2;}"
 
 
 # ---- END ----
