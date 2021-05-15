@@ -756,7 +756,7 @@ Node *stmt(LVar **locals_ptr) {
           if (! tok) report_error(token->str, "NOT ARG var");
 
           decl_new_lvar(tok, &(node->func_locals));
-          report_log(2, "stmt() new_node_lvar for func def arg");
+          report_log(3, "stmt() new_node_lvar for func def arg");
           Node *arg = new_node_lvar(tok, &(node->func_locals));
           report_log(3, "find Arg offset=%d", arg->offset);
           node->args[node->args_count] = arg;
