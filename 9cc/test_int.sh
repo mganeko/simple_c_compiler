@@ -37,13 +37,16 @@ assert_outer() {
 
 
 # 整数
-assert 42 "main() {42; }"
+assert 42 "int main() {42; }"
 
 
 # --- type int ---
 
-assert 1 "main() { int a; a=1; return a;}"
-assert 2 "main() { int a; int b; a=1; b=a+1; return b;}"
+assert 1 "int main() { int a; a=1; return a;}"
+assert 2 "int main() { int a; int b; a=1; b=a+1; return b;}"
+
+assert 2 "int double(int x) { return 2*x; } int main() { int a; a=1; int b; b=double(a); return b;}"
+assert 2 "int add(int x, int y) { return x+y; } int main() { int a; a=1; int b; b=add(6, a); return b;}"
 
 # ---- END ----
 echo OK
