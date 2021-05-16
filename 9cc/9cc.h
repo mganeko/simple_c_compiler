@@ -30,6 +30,16 @@ struct Token {
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p);
 
+
+// --- type ---
+
+typedef struct Type Type;
+
+struct Type {
+  enum { INT, PTR } ty;
+  struct Type *ptr_to;
+};
+
 // --- local variable ---
 
 typedef struct LVar LVar;
@@ -38,6 +48,7 @@ typedef struct LVar LVar;
 struct LVar {
   LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
+  Type *type; // 型
   int len;    // 名前の長さ
   int offset; // RBPからのオフセット
 };
@@ -94,6 +105,7 @@ struct Node {
   char *func_name; // call/def funcion()の場合、function名
   Node **args; // call/def function()の場合の引数の配列 (MAX 6)
   int args_count; // call/def function()の場合の引数の数
+  Type* func_type; // 関数の戻り値の型
   LVar *func_locals; // def function()の場合に、関数内のローカル変数 
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
