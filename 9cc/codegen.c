@@ -19,11 +19,19 @@ void error(char *fmt, ...) {
 
 void gen_lval(Node *node) {
   if (node->kind != ND_LVAR)
-    error("代入の左辺値が変数ではありません");
+    error("代入の左辺値が変数ではありません kind Not=%d, But=%d", ND_LVAR, node->kind);
 
   printf("  mov rax, rbp\n");
   printf("  sub rax, %d\n", node->offset);
   printf("  push rax\n");
+}
+
+void gen_lvar_ref(Node *node) {
+  if (node->kind != ND_DEREF)
+    error("代入の左辺値がアドレス参照ではありません kind Not=%d, But=%d", ND_DEREF, node->kind);
+
+  // アドレスを評価
+  gen(node->lhs);
 }
 
 int label_index = 0;
@@ -247,9 +255,19 @@ void gen(Node *node) {
 
   // 変数代入
   if (node->kind == ND_ASSIGN) {
-    gen_lval(node->lhs);
+    // 左辺
+    if (node->lhs->kind == ND_DEREF) {
+      // ポインター
+      gen_lvar_ref(node->lhs);
+    }
+    else {
+      gen_lval(node->lhs);
+    }
+
+    // 右辺
     gen(node->rhs);
 
+    // 代入
     printf("  pop rdi\n");
     printf("  pop rax\n");
     printf("  mov [rax], rdi\n");

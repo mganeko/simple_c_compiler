@@ -248,12 +248,18 @@ assert 3 "int main() { int x; int y; int z; x = 3; y = 5; z = &y + 8; return *z;
 assert 6 "int main() { int x; int y; int z; x = 3; y = &x; z = y; return *z * 2;}"
 
 # --- type int ---
-
 assert 1 "int main() { int a; a=1; return a;}"
 assert 2 "int main() { int a; int b; a=1; b=a+1; return b;}"
 
 assert 2 "int double(int x) { return 2*x; } int main() { int a; a=1; int b; b=double(a); return b;}"
 assert 7 "int add(int x, int y) { return x+y; } int main() { int a; a=1; int b; b=add(6, a); return b;}"
+
+# --- pointer --
+assert 5 "int getValuePP(int **addr) { return **addr;} int main() { int a; int *b; int **c; a=5; b=&a; c=&b; return getValuePP(c); }"
+assert 4 "int main() { int a; int *b; b=&a; *b = 4; }"
+assert 3 "int main() { int a; a=1; int *b; b=&a; *b = 4; return a - 1; }"
+assert 10 "int setValuePP(int **addr, int x) { **addr = x;} int main() { int a; int *b; int **c; a=5; b=&a; c=&b; setValuePP(c, a+5); return a; }"
+
 
 
 # ---- END ----

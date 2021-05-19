@@ -39,6 +39,18 @@ void report_log(int level, char *fmt, ...) {
   fprintf(stderr, "\n");
 }
 
+void report_type(int level, Type* type) {
+  if (level > log_level)
+    return;
+
+  Type* t = type;
+  while(t->ty == PTR) {
+    fprintf(stderr, "*");
+    t = t->ptr_to;
+  }
+  fprintf(stderr, "INT\n");
+}
+
 // エラーを報告する
 void report_error(char *fmt, ...) {
   va_list ap;
@@ -332,7 +344,7 @@ int count_lvar(LVar *locals) {
 }
 
 // 新しい変数を宣言する
-LVar *decl_new_lvar(Token *tok, LVar **locals_ptr) {
+LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
   if (find_lvar(tok, locals_ptr))
     error_at(tok->str, "すでに変数が宣言されています");
   
@@ -341,6 +353,7 @@ LVar *decl_new_lvar(Token *tok, LVar **locals_ptr) {
   lvar->next = locals;
   lvar->name = tok->str;
   lvar->len = tok->len;
+  lvar->type = type;
   if (locals) {
     report_log(4, "--next variable--");
     lvar->offset = locals->offset + 8;
@@ -353,6 +366,7 @@ LVar *decl_new_lvar(Token *tok, LVar **locals_ptr) {
   locals = lvar;
   *locals_ptr = lvar;
   report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
+  report_type(2, type);
 
   return lvar;
 }
@@ -370,13 +384,6 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
-// Node *new_node_lvar(char val_name) {
-//   Node *node = calloc(1, sizeof(Node));
-//   node->kind = ND_LVAR;
-//   node->offset = (val_name - 'a' + 1) * 8;
-//   return node;
-// }
-
 Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_LVAR;
@@ -387,29 +394,6 @@ Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
     node->offset = lvar->offset;
     return node;
   }
-  
-  /*
-   else {
-    lvar = calloc(1, sizeof(LVar));
-    lvar->next = locals;
-    lvar->name = tok->str;
-    lvar->len = tok->len;
-    if (locals) {
-      report_log(4, "--next variable--");
-      lvar->offset = locals->offset + 8;
-    }
-    else {
-      report_log(4, "--1st variable--");
-      lvar->offset = 8; // NG0;
-    }
-    node->offset = lvar->offset;
-    locals = lvar;
-    *locals_ptr = lvar;
-    report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
-  }
-
-  return node;
-  */
 
   // -- 変数が未定義 --
   error_at(tok->str, "変数が未定義です");
@@ -426,13 +410,15 @@ Node *new_node_func_call(Token *tok) {
   return node;
 }
 
-Node *new_node_func_def(Token *tok) {
+Node *new_node_func_def(Token *tok, Type* type) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC_DEF;
   report_log(3, "- Node FUNC_DEF len=%d ident=%s", tok->len, tok->str);
   node->func_name = calloc(tok->len+1, sizeof(char));
   strncpy(node->func_name, tok->str, tok->len);
-  report_log(3, "- Node FUNC_DEF funcname=%s", node->func_name);
+  report_log(2, "- Node FUNC_DEF funcname=%s", node->func_name);
+  node->func_type = type;
+  report_type(2, type);
 
   return node;
 }
@@ -492,98 +478,10 @@ Node *primary(LVar **locals_ptr) {
       if (parse_level == 0) {
         // -- 関数定義 --
         error_at(tok->str, "関数定義はここには来ないはず");
-
-        /*------------
-        if (consume(")")) {
-          // --- 引数なし 関数定義 --- 
-          report_log(3, "--parse Node FUNC_DEF, no args");
-          parse_level = 1;
-          expect("{");
-
-          Node *node = new_node_func_def(tok);
-          report_log(3, "--fuction body BLOCK");
-          Node *body = calloc(1, sizeof(Node));
-          node->body = body;
-          body->kind = ND_BLOCK;
-          body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
-          body->stmts_count = 0;
-          while(! consume("}")) {
-            if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
-              report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
-            }
-            report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
-            body->stmts[body->stmts_count] = stmt(&(node->func_locals));
-            body->stmts_count++;
-            report_log(3, "--func body line %d", body->stmts_count);
-          }
-          report_log(3, "--func body BLOCK end, %d lines", body->stmts_count);
-
-          parse_level = 0;
-          return node;
-        }
-
-        else if (parse_level == 1) {
-          // --- ここには来ないはず ---
-          // 関数内部
-          // 引数なし、関数呼び出し
-          report_log(3, "--parse Node FUNC_CALL, no args");
-          Node *node = new_node_func_call(tok);
-          return node;
-        }
-        ----*/
       }
 
       // -- 関数定義 --
       error_at(tok->str, "引数あり関数定義はここには来ないはず");
-
-      /*--
-      // --- 引数あり 関数定義 ---  
-      report_log(3, "--parse Node  FUNC_DEF with args");
-      Node *node = new_node_func_def(tok);
-      //report_error("NOT SUPPORTED YET");
-      node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
-      node->args_count = 0;
-      while(1) {
-        if (node->args_count >= FUNC_ARG_MAX) {
-          error_at(token->str, "TOO MANY func args");
-        }
-
-        // 変数（アイデンティファイヤー）か？
-        Token *tok = consume_ident();
-        if (! tok) report_error(token->str, "NOT ARG var");
-
-        Node *arg = new_node_lvar(tok, &(node->func_locals));
-        report_log(3, "find Arg offset=%d", arg->offset);
-        node->args[node->args_count] = arg;
-        node->args_count++;
-        if (consume(")")) break;
-        expect(",");
-      }
-
-      parse_level = 1;
-      expect("{");
-      report_log(3, "--fuction body BLOCK");
-      Node *body = calloc(1, sizeof(Node));
-      node->body = body;
-      body->kind = ND_BLOCK;
-      body->stmts = calloc(BLOCK_LINE_MAX, sizeof(Node*));
-      body->stmts_count = 0;
-      while(! consume("}")) {
-        if ( (body->stmts_count) >= BLOCK_LINE_MAX) {
-          report_error("TOO MANY LINES(%d) in func body block", (body->stmts_count+1));
-        }
-        report_log(4, "node addr=%d  node->func_locals=%d, &node->func_locals=%d, &(node->func_locals)=%d", node, node->func_locals, &node->func_locals, &(node->func_locals));
-        body->stmts[body->stmts_count] = stmt(&(node->func_locals));
-        body->stmts_count++;
-        report_log(3, "--func body line %d", body->stmts_count);
-      }
-      report_log(3, "--func body BLOCK end, %d lines", body->stmts_count);
-
-      parse_level = 0;
-      report_log(3, "--parse Node FUNC_DEF end, with args=%d", node->args_count);
-
-      return node;
-      ---*/
     }
 
     // -- そうでない場合は、変数 --
@@ -691,6 +589,19 @@ Node *stmt(LVar **locals_ptr) {
   if (consume_kind(TK_TYPE_INT)) {
     report_log(3, "stmt() int");
 
+    // int型
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = INT;
+
+    // ポインターの扱い
+    while(consume("*")) {
+      report_log(2, "stmt() pointer(*) for variable");
+      Type* new_tp = calloc(1, sizeof(Type));
+      new_tp->ty = PTR;
+      new_tp->ptr_to = type;
+      type = new_tp;
+    } 
+
     // 変数（アイデンティファイヤー）か？
     Token *tok = consume_ident();
     if (! tok)
@@ -699,7 +610,7 @@ Node *stmt(LVar **locals_ptr) {
     if (consume(";")) {
       // -- 変数宣言 --
       report_log(3, "stmt() decl_new_lvar");
-      decl_new_lvar(tok, locals_ptr);
+      decl_new_lvar(tok, type, locals_ptr);
       report_log(3, "stmt() new_node_lvar");
       node = new_node_lvar(tok, locals_ptr);
     }
@@ -714,7 +625,7 @@ Node *stmt(LVar **locals_ptr) {
         parse_level = 1;
         expect("{");
 
-        Node *node = new_node_func_def(tok);
+        Node *node = new_node_func_def(tok, type);
         report_log(3, "--fuction body BLOCK");
         Node *body = calloc(1, sizeof(Node));
         node->body = body;
@@ -738,7 +649,7 @@ Node *stmt(LVar **locals_ptr) {
       else {
         // --- 引数あり 関数定義 ---  
         report_log(2, "--parse Node  FUNC_DEF with args");
-        Node *node = new_node_func_def(tok);
+        Node *node = new_node_func_def(tok, type);
         //report_error("NOT SUPPORTED YET");
         node->args = calloc(FUNC_ARG_MAX, sizeof(Node*));
         node->args_count = 0;
@@ -751,11 +662,24 @@ Node *stmt(LVar **locals_ptr) {
           if (! consume_kind(TK_TYPE_INT))
             error_at(token->str, "NO int for arg");
 
+          // int型
+          Type *arg_type = calloc(1, sizeof(Type));
+          arg_type->ty = INT;
+
+          // ポインターの扱い
+          while(consume("*")) {
+            report_log(2, "pointer(*) for func arg");
+            Type* new_tp = calloc(1, sizeof(Type));
+            new_tp->ty = PTR;
+            new_tp->ptr_to = arg_type;
+            arg_type = new_tp;
+          } 
+
           // 変数（アイデンティファイヤー）か？
           Token *tok = consume_ident();
           if (! tok) report_error(token->str, "NOT ARG var");
 
-          decl_new_lvar(tok, &(node->func_locals));
+          decl_new_lvar(tok, arg_type, &(node->func_locals));
           report_log(3, "stmt() new_node_lvar for func def arg");
           Node *arg = new_node_lvar(tok, &(node->func_locals));
           report_log(3, "find Arg offset=%d", arg->offset);
