@@ -260,8 +260,23 @@ assert 4 "int main() { int a; int *b; b=&a; *b = 4; }"
 assert 3 "int main() { int a; a=1; int *b; b=&a; *b = 4; return a - 1; }"
 assert 10 "int setValuePP(int **addr, int x) { **addr = x;} int main() { int a; int *b; int **c; a=5; b=&a; c=&b; setValuePP(c, a+5); return a; }"
 
+assert_outer 4 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = p + 2;  \
+  *q; }"
 
+assert_outer 8 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = p + 3; \
+  return *q; }"
 
+assert_outer 10 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = p + 3; \
+  x = *q;
+  q = q - 2;
+  return *q + x; }"
+  
 # ---- END ----
 echo OK
 exit 0

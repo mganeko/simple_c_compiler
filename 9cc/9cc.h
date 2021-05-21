@@ -109,7 +109,7 @@ struct Node {
   LVar *func_locals; // def function()の場合に、関数内のローカル変数 
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
-
+  LVar *lvar;    // kindがND_LVARの場合のみ使う
 };
 
 

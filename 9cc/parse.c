@@ -51,6 +51,18 @@ void report_type(int level, Type* type) {
   fprintf(stderr, "INT\n");
 }
 
+void report_lvar(int level, LVar *lvar) {
+  if (level > log_level)
+    return;
+
+  char buf[128];
+  strncpy(buf, lvar->name, lvar->len);
+  buf[lvar->len] = '\0';
+
+  fprintf(stderr, "LVar: name=%s, offset=%d Type=", buf, lvar->offset);
+  report_type(level, lvar->type);
+}
+
 // エラーを報告する
 void report_error(char *fmt, ...) {
   va_list ap;
@@ -91,6 +103,8 @@ bool consume(char *op) {
 void dump_token() {
   report_log(1, "token kind=%d, len=%d str=%s", token->kind, token->len, token->str);
 }
+
+
 
 // // 次のトークンが変数かどうかをチェック
 // bool is_variable() {
@@ -366,7 +380,7 @@ LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
   locals = lvar;
   *locals_ptr = lvar;
   report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
-  report_type(2, type);
+  report_lvar(3, lvar);
 
   return lvar;
 }
@@ -392,6 +406,7 @@ Node *new_node_lvar(Token *tok, LVar **locals_ptr) {
   LVar *lvar = find_lvar(tok, locals_ptr);
   if (lvar) {
     node->offset = lvar->offset;
+    node->lvar = lvar;
     return node;
   }
 
