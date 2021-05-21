@@ -17,10 +17,42 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-void gen_lval(Node *node) {
-  if (node->kind != ND_LVAR)
-    error("代入の左辺値が変数ではありません kind Not=%d, But=%d", ND_LVAR, node->kind);
+void dump_type(Type* type) {
+  Type* t = type;
+  while(t->ty == PTR) {
+    fprintf(stderr, "*");
+    t = t->ptr_to;
+  }
+  fprintf(stderr, "INT\n");
+}
 
+void dump_lvar(LVar *lvar) {
+  char buf[128];
+  strncpy(buf, lvar->name, lvar->len);
+  buf[lvar->len] = '\0';
+
+  fprintf(stderr, "LVar: name=%s, offset=%d Type=", buf, lvar->offset);
+  dump_type(lvar->type);
+}
+
+void print_type(Type* type) {
+  Type* t = type;
+  while(t->ty == PTR) {
+    printf("*");
+    t = t->ptr_to;
+  }
+  printf("INT");
+}
+
+void print_lvar(LVar *lvar) {
+  char buf[128];
+  strncpy(buf, lvar->name, lvar->len);
+  buf[lvar->len] = '\0';
+
+  printf("LVar: name=%s, offset=%d ", buf, lvar->offset);
+}
+
+void gen_lval(Node *node) {
   printf("  mov rax, rbp\n");
   printf("  sub rax, %d\n", node->offset);
   printf("  push rax\n");
@@ -246,6 +278,10 @@ void gen(Node *node) {
 
   // 変数読み出し
   if (node->kind == ND_LVAR) {
+    printf("  #READ from ");
+    print_lvar(node->lvar);
+    print_type(node->lvar->type);
+    printf("\n");
     gen_lval(node);
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
@@ -261,6 +297,13 @@ void gen(Node *node) {
       gen_lvar_ref(node->lhs);
     }
     else {
+      if (node->lhs->kind != ND_LVAR)
+        error("代入の左辺値が変数ではありません kind Not=%d, But=%d", ND_LVAR, node->kind);
+
+      printf("  #ASSIGN to ");
+      print_lvar(node->lhs->lvar);
+      print_type(node->lhs->lvar->type);
+      printf("\n");
       gen_lval(node->lhs);
     }
 
@@ -296,6 +339,41 @@ void gen(Node *node) {
   if (node->lhs && node->rhs) {
     gen(node->lhs);
     gen(node->rhs);
+
+    // 最初の項がポインターの場合の特別処理
+    if (node->lhs->kind == ND_LVAR) {
+      //fprintf(stderr, "1st item is LVAR: ");
+      //dump_lvar(node->lhs->lvar);
+      if(node->lhs->lvar->type->ty == INT) {
+        //fprintf(stderr, "ty INT\n");
+        // INT型の場合はそのまま
+      }
+      else if(node->lhs->lvar->type->ty == PTR) {
+        if(node->lhs->lvar->type->ptr_to->ty == INT) {
+          //fprintf(stderr, "ty PTR to INT\n");
+          // INTへのポインターの場合、4倍する
+          printf("  # mul 4 for PTR to INT\n");
+          printf("  push 4\n");
+          printf("  pop rdi\n");
+          printf("  pop rax\n");
+          printf("  imul rax, rdi\n");
+          printf("  push rax\n");
+        }
+        else {
+          //fprintf(stderr, "ty PTR to PTR\n");
+          // ポインターへのポインターの場合、8倍する
+          printf("  # mul 8 for PTR to PTR\n");
+          printf("  push 8\n");
+          printf("  pop rdi\n");
+          printf("  pop rax\n");
+          printf("  imul rax, rdi\n");
+          printf("  push rax\n");
+        }
+      }
+      else {
+        fprintf(stderr, "ty %d\n", node->lhs->lvar->type->ty);
+      }
+    }
   }
   else {
     error("NOT Operator Node found, Kind(%d) while Genereting code \n", node->kind);
