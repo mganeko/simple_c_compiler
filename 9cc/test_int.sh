@@ -80,6 +80,20 @@ assert_outer 10 "int main() { int *p; int *q; int x; \
 #  q = 3 + p; \
 #  return *q; }"
 
+# --- sizeof ---
+
+assert 4 "int main() { sizeof(1); }"
+assert 4 "int main() { int a; sizeof(a); }"
+assert 8 "int main() { int a; sizeof(&a); }"
+assert 8 "int main() { int *a; sizeof(a); }"
+assert 8 "int main() { int **a; sizeof(a); }"
+assert 8 "int main() { int ***a; sizeof(a); }"
+
+assert 4 "int main() { int *a; sizeof(*a); }"
+assert 8 "int main() { int **a; sizeof(*a); }"
+assert 8 "int main() { int ***a; sizeof(*a); }"
+#NG NOT YET  assert 4 "int main() { int **a; sizeof(**a); }"
+#NG NOT YET  assert 8 "int main() { int ***a; sizeof(**a); }"
 
 # ---- END ----
 echo OK

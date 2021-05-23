@@ -185,8 +185,33 @@ Func def
 - [ ] int *p; 1+p
 - [ ] int *p; p+1+2
 - [ ] int *p; int **q; q+1
-- 
+ 
 
+# Step 20 - sizeof
+
+- [x] tokenize sizeof
+- [ ] parse sizeof
+  - [ ] sizeofの対象をパース
+    - [x] 簡易
+    - [ ] ドキュメントの通り
+  - [ ] 対象の型を判定する int or pointer --> 一度でもポインターが出てきたらポインター
+    - [x]] 整数:sizeof(1) --> 4
+    - [x] int型 変数: int a; sizeof(a) --> 4
+    - [ ] sizeof(int) --> 4
+    - [ ] sizeof(1+2) --> 4
+    - [ ] sizeof(a+1) --> 4
+    - [ ] 関数の戻り値を含む 式
+    - [x] アドレスの中身 int *a; sizeoof(*a) --> 4
+    - [x] アドレスの中身 int **a; sizeoof(*a) --> 8
+    - [ ] アドレスの中身 int **a; sizeoof(**a) --> 4
+    - [ ] アドレスの中身 int ***a; sizeoof(**a) --> 8
+    - [x] アドレス & --> 8
+    - [x] ポンター型変数 int*, int**,  int***
+    - [ ] ポインター演算 
+    - [ ] ポインター演算の中身 (4 or 8)
+  - [x] Node ND_NUM 4/8に置き換える
+  - [ ] 式（四則演算）に型を持たせる
+  - [ ] 関数に型を持たせる
 
 
 
