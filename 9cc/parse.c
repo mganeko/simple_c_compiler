@@ -20,6 +20,9 @@ char *user_input;
 // --- コード全体 ---
 Node *code[CODE_LINE_MAX];
 
+// --- 整数型の代表値  --
+Type type_int = {INT, NULL};
+
 
 // -- ログ ---
 //int log_level = 0; // 指定したレベル以下のログを出力する
@@ -234,6 +237,7 @@ Token *tokenize(char *p) {
   Token head;
   head.next = NULL;
   Token *cur = &head;
+  int len;
 
   while (*p) {
     // 空白文字をスキップ
@@ -257,51 +261,63 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // --- sizeof演算子 ---
+    len = 6;
+    if (strncmp(p, "sizeof", len) == 0 && !is_alnum(p[len])) {
+      report_log(2, "sizeof発見");
+      cur = new_token(TK_SIZEOF, cur, p, len);
+      p += len;
+      continue;
+    }
+
+
     // ==== 型宣言 =====
     // -- int --
-    if (strncmp(p, "int", 3) == 0 && !is_alnum(p[3])) {
+    len = 3;
+    if (strncmp(p, "int", len) == 0 && !is_alnum(p[len])) {
       report_log(3, "int発見");
-      cur = new_token(TK_TYPE_INT, cur, p, 3);
-      p += 3;
+      cur = new_token(TK_TYPE_INT, cur, p, len);
+      p += len;
       continue;
     }
 
     // ==== 予約語 =====
     // -- return --
-    if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
-      // tokens[i].ty = TK_RETURN;
-      // tokens[i].str = p;
-      // i++;
-  
-      cur = new_token(TK_RETURN, cur, p, 6);
-      p += 6;
+    len = 6;
+    if (strncmp(p, "return", len) == 0 && !is_alnum(p[len])) {
+      cur = new_token(TK_RETURN, cur, p, len);
+      p += len;
       continue;
     }
 
-    if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
+    len = 2;
+    if (strncmp(p, "if", len) == 0 && !is_alnum(p[len])) {
       report_log(3, "if発見");
-      cur = new_token(TK_IF, cur, p, 2);
-      p += 2;
+      cur = new_token(TK_IF, cur, p, len);
+      p += len;
       report_log(3, "if切り出し");
       continue;
     }
-    if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
+    len = 4;
+    if (strncmp(p, "else", len) == 0 && !is_alnum(p[len])) {
       report_log(3, "else発見");
-      cur = new_token(TK_ELSE, cur, p, 4);
-      p += 4;
+      cur = new_token(TK_ELSE, cur, p, len);
+      p += len;
       continue;
     }
-    if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
+    len=5;
+    if (strncmp(p, "while", len) == 0 && !is_alnum(p[len])) {
       report_log(3, "while発見");
-      cur = new_token(TK_WHILE, cur, p, 5);
-      p += 5;
+      cur = new_token(TK_WHILE, cur, p, len);
+      p += len;
       continue;
     }
 
-    if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
+    len = 3;
+    if (strncmp(p, "for", len) == 0 && !is_alnum(p[len])) {
       report_log(3, "for発見");
-      cur = new_token(TK_FOR, cur, p, 3);
-      p += 3;
+      cur = new_token(TK_FOR, cur, p, len);
+      p += len;
       continue;
     }
     // ==== 予約語 =====
@@ -450,6 +466,100 @@ Node *new_node_num(int val) {
   return node;
 }
 
+// -- 型のポインターの深さを返す --
+// int type_ptr_depth(Type* type) {
+//   if (type->ty == INT)
+//     return 0;
+  
+//   int depth = type_ptr_depth(type->ptr_to) + 1;
+//   return depth;
+// }
+
+// -- 型を判定 --
+Type *type_of(Node *node) {
+  Type *tp_child;
+  Type *tp_new;
+  Type *tp_left;
+  Type *tp_right;
+  int depth_left;
+  int depth_right;
+  switch(node->kind) {
+    case ND_NUM:
+      return &type_int;
+
+    case ND_ADDR:
+      tp_child = type_of(node->lhs);
+      tp_new = calloc(1, sizeof(Type));
+      tp_new->ty = PTR;
+      tp_new->ptr_to = tp_child;
+      return tp_new;
+
+    case ND_LVAR:
+      return node->lvar->type;
+
+    case ND_DEREF:
+      tp_child = type_of(node->lhs);
+      return tp_child->ptr_to; // 参照先
+
+    case ND_FUNC_CALL: // 今のところ、関数の戻り値はintのみ
+      return &type_int;
+
+    case ND_MUL: // *
+    case ND_DIV: // /
+      // 今のところ、結果はintのみ
+      return &type_int;
+
+    case ND_ADD: // +
+    case ND_SUB: // -
+      tp_left = type_of(node->lhs);
+      tp_right = type_of(node->rhs);
+      if ((tp_left->ty == PTR) && (tp_right->ty == PTR))
+          report_error("type_of() ポインター同志の演算はできません");
+
+      if (tp_left->ty == PTR)
+        return tp_left;
+ 
+      if (tp_right->ty == PTR)
+        return tp_right;
+      
+      // 整数同志のはず
+      return tp_left;
+
+    case ND_EQ: // ==
+    case ND_NE: // !=
+    case ND_GT: // >
+    case ND_LT: // <
+    case ND_GE: // >=
+    case ND_LE: // <=
+      // 今のところ、boolはint
+      return &type_int;
+
+    case ND_ASSIGN: // = (代入)
+      report_log(2, "Typeof ND_ASSIGN");
+      tp_left = type_of(node->lhs);
+      tp_right = type_of(node->rhs);
+      report_type(2, tp_left);
+      report_type(2, tp_right);
+      if (tp_left->ty != tp_right->ty)
+        report_error("代入の型が一致していません");
+      return tp_left;
+
+    default:
+      report_error("UNKNOWN Type");
+  }
+}
+
+// -- サイズを判定 --
+int calc_size(Node *node) {
+  Type* type = type_of(node);
+  if (type->ty == INT)
+    return 4;
+  else if (type->ty == PTR)
+    return 8;
+
+  report_error("UNKNOWN Type for sizeof()");
+}
+
 Node *primary(LVar **locals_ptr) {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -511,6 +621,17 @@ Node *primary(LVar **locals_ptr) {
 }
 
 Node *unary(LVar **locals_ptr) {
+  if (consume_kind(TK_SIZEOF)) {
+    // 対象をパース
+    Node *contents = primary(locals_ptr);
+
+    // -- サイズを判定 --
+    int size = calc_size(contents);
+
+    // 定数に変換
+    return new_node_num(size);
+  }
+
   if (consume("+"))
     return primary(locals_ptr);
   if (consume("-"))
