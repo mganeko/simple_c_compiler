@@ -20,6 +20,9 @@ char *user_input;
 // --- コード全体 ---
 Node *code[CODE_LINE_MAX];
 
+// --- 整数型の代表値  --
+Type type_int = {INT, NULL};
+
 
 // -- ログ ---
 //int log_level = 0; // 指定したレベル以下のログを出力する
@@ -463,46 +466,91 @@ Node *new_node_num(int val) {
   return node;
 }
 
-// -- サイズを判定 --
-int calc_size(Node *node) {
-  int size = 0;
+// -- 型のポインターの深さを返す --
+// int type_ptr_depth(Type* type) {
+//   if (type->ty == INT)
+//     return 0;
+  
+//   int depth = type_ptr_depth(type->ptr_to) + 1;
+//   return depth;
+// }
+
+// -- 型を判定 --
+Type *type_of(Node *node) {
+  Type *tp_child;
+  Type *tp_new;
+  Type *tp_left;
+  Type *tp_right;
+  int depth_left;
+  int depth_right;
   switch(node->kind) {
     case ND_NUM:
-      size = 4;
-      break;
+      return &type_int;
+
     case ND_ADDR:
-      size = 8;
-      break;
+      tp_child = type_of(node->lhs);
+      tp_new = calloc(1, sizeof(Type));
+      tp_new->ty = PTR;
+      tp_new->ptr_to = tp_child;
+      return tp_new;
+
     case ND_LVAR:
-      if (node->lvar->type->ty == INT)
-        size = 4;
-      else if (node->lvar->type->ty == PTR)
-        size = 8;
-      else
-        report_error("UNKNOWN type for LVAR");
-      break;
-    case ND_DEREF: // *
-      // 今のところ*変数のみ対応
-      if (node->lhs->kind != ND_LVAR)
-        report_error("Only support sizeof (DEREF LVAR)");
+      return node->lvar->type;
 
-      // 変数も、ポインター型のみ対応
-      if (node->lhs->lvar->type->ty != PTR)
-        report_error("Only support sizeof (DEREF LVAR->PTR)");
+    case ND_DEREF:
+      tp_child = type_of(node->lhs);
+      return tp_child->ptr_to; // 参照先
 
-      // ポインターの指す先
-      if (node->lhs->lvar->type->ptr_to->ty == INT)
-        size = 4;
-      else if(node->lhs->lvar->type->ptr_to->ty == PTR)
-        size = 8;
-      else
-        report_error("sizeof (DEREF LVAR->PTR) 判定不能");
-      break;
+    case ND_FUNC_CALL: // 今のところ、関数の戻り値はintのみ
+      return &type_int;
+
+    case ND_MUL: // *
+    case ND_DIV: // /
+      // 今のところ、結果はintのみ
+      return &type_int;
+
+    case ND_ADD: // +
+    case ND_SUB: // -
+      tp_left = type_of(node->lhs);
+      tp_right = type_of(node->rhs);
+      if ((tp_left->ty == PTR) && (tp_right->ty == PTR))
+          report_error("type_of() ポインター同志の演算はできません");
+
+      if (tp_left->ty == PTR)
+        return tp_left;
+ 
+      if (tp_right->ty == PTR)
+        return tp_right;
+      
+      // 整数同志のはず
+      return tp_left;
+
+    case ND_EQ: // ==
+    case ND_NE: // !=
+    case ND_GT: // >
+    case ND_LT: // <
+    case ND_GE: // >=
+    case ND_LE: // <=
+      // 今のところ、boolはint
+      return &type_int;
+
+    // 未対応
+    //ND_ASSIGN, // = (代入)
+
     default:
-      report_error("UNKNOWN kind for sizeof()");
+      report_error("UNKNOWN Type");
   }
+}
 
-  return size;
+// -- サイズを判定 --
+int calc_size(Node *node) {
+  Type* type = type_of(node);
+  if (type->ty == INT)
+    return 4;
+  else if (type->ty == PTR)
+    return 8;
+
+  report_error("UNKNOWN Type for sizeof()");
 }
 
 Node *primary(LVar **locals_ptr) {
