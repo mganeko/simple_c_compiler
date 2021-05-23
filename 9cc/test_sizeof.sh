@@ -118,6 +118,8 @@ assert 127 "int main() { int *a; int *b; sizeof(a + b); }" # ERROR:127
 assert 4 "int main() { int *a; sizeof(*(a + 1 + 2 - 1)); }"
 assert 8 "int main() { int **a; sizeof(*(a + 1)); }"
 
+assert 4 "int main() { sizeof(sizeof(1)); }"
+
 # ---- END ----
 echo OK
 exit 0
