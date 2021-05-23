@@ -291,6 +291,12 @@ void gen(Node *node) {
 
   // 変数代入
   if (node->kind == ND_ASSIGN) {
+    // 型判定
+    Type* tp_left = type_of(node->lhs);
+    Type* tp_right = type_of(node->rhs);
+    if (tp_left->ty != tp_right->ty)
+      error("gen() 代入の型が一致していません");
+
     // 左辺
     if (node->lhs->kind == ND_DEREF) {
       // ポインター
@@ -337,9 +343,59 @@ void gen(Node *node) {
 
   // --- 演算子 ----
   if (node->lhs && node->rhs) {
-    gen(node->lhs);
-    gen(node->rhs);
+    // 型判定
+    Type* tp_left = type_of(node->lhs);
+    Type* tp_right = type_of(node->rhs);
+    if ((tp_left->ty == PTR) && (tp_right->ty == PTR))
+      error("type_of() ポインター同志の演算はできません");
 
+    // 左項
+    gen(node->lhs);
+    if ((tp_left->ty == INT) && (tp_right->ty == PTR)) {
+      if (tp_right->ptr_to->ty == INT) {
+        // INTへのポインターの場合、4倍する
+        printf("  # mul left 4, for right PTR to INT\n");
+        printf("  push 4\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+      else {
+        // ポインターへのポインターの場合、8倍する
+        printf("  # mul left 8 for right PTR to PTR\n");
+        printf("  push 8\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+    }
+
+    // 右項
+    gen(node->rhs);
+    if ((tp_left->ty == PTR) && (tp_right->ty == INT)) {
+      if (tp_left->ptr_to->ty == INT) {
+        // INTへのポインターの場合、4倍する
+        printf("  # mul right 4, for left PTR to INT\n");
+        printf("  push 4\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+      else {
+        // ポインターへのポインターの場合、8倍する
+        printf("  # mul right 8 for left PTR to PTR\n");
+        printf("  push 8\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+    }
+
+    /*--
     // 最初の項がポインターの場合の特別処理
     if (node->lhs->kind == ND_LVAR) {
       //fprintf(stderr, "1st item is LVAR: ");
@@ -374,6 +430,7 @@ void gen(Node *node) {
         fprintf(stderr, "ty %d\n", node->lhs->lvar->type->ty);
       }
     }
+    ---*/
   }
   else {
     error("NOT Operator Node found, Kind(%d) while Genereting code \n", node->kind);

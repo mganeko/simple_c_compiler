@@ -243,9 +243,9 @@ int main() { \
 
 # ---- addr ---
 
-assert 2 "int main() { int a; int b; a=1; b=&a; a=2; return *b;}"
-assert 3 "int main() { int x; int y; int z; x = 3; y = 5; z = &y + 8; return *z;}"
-assert 6 "int main() { int x; int y; int z; x = 3; y = &x; z = y; return *z * 2;}"
+#NOT OK 型の不一致; assert 2 "int main() { int a; int b; a=1; b=&a; a=2; return *b;}"
+#NOT OK 型の不一致; assert 3 "int main() { int x; int y; int z; x = 3; y = 5; z = &y + 8; return *z;}"
+#NOT OK 型の不一致; assert 6 "int main() { int x; int y; int z; x = 3; y = &x; z = y; return *z * 2;}"
 
 # --- type int ---
 assert 1 "int main() { int a; a=1; return a;}"
@@ -276,7 +276,55 @@ assert_outer 10 "int main() { int *p; int *q; int x; \
   x = *q;
   q = q - 2;
   return *q + x; }"
-  
+
+assert_outer 8 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = 3 + p; \
+  return *q; }"
+
+assert_outer 8 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = 1 + p + 2; \
+  return *q; }"
+
+# --- sizeof ---
+
+assert 4 "int main() { sizeof(1); }"
+assert 4 "int main() { int a; sizeof(a); }"
+assert 8 "int main() { int a; sizeof(&a); }"
+assert 8 "int main() { int *a; sizeof(a); }"
+assert 8 "int main() { int **a; sizeof(a); }"
+assert 8 "int main() { int ***a; sizeof(a); }"
+
+assert 4 "int main() { int *a; sizeof(*a); }"
+assert 8 "int main() { int **a; sizeof(*a); }"
+assert 8 "int main() { int ***a; sizeof(*a); }"
+
+assert 4 "int main() { int **a; sizeof(**a); }"
+assert 8 "int main() { int ***a; sizeof(**a); }"
+assert 4 "int main() { int ***a; sizeof(***a); }"
+
+assert 4 "int add(int x, int y) { return x+y; } int main() { sizeof(add(1, 2)); }"
+
+assert 4 "int main() { int a; sizeof(1 + 2); }"
+assert 4 "int main() { int a; sizeof(1 + 2*a); }"
+assert 4 "int main() { int a; sizeof(a == 1); }"
+assert 4 "int main() { int a; sizeof(a > 1); }"
+assert 4 "int add(int x, int y) { return x+y; } int main() { int a; sizeof(1+add(1, 2)+a); }"
+
+
+assert 8 "int main() { int *a; sizeof(a + 1); }"
+assert 8 "int main() { int *a; sizeof(1 + a); }"
+assert 8 "int main() { int *a; sizeof(a + 1 + 2 - 1); }"
+assert 8 "int main() { int *a; sizeof(1 + 2 + a - 1 - 1); }"
+
+assert 8 "int main() { int **a; sizeof(a + 1); }"
+
+assert 127 "int main() { int *a; int *b; sizeof(a + b); }" # ERROR:127
+
+assert 4 "int main() { int *a; sizeof(*(a + 1 + 2 - 1)); }"
+assert 8 "int main() { int **a; sizeof(*(a + 1)); }"
+
 # ---- END ----
 echo OK
 exit 0

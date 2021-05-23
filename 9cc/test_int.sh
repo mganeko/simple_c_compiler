@@ -73,13 +73,15 @@ assert_outer 10 "int main() { int *p; int *q; int x; \
   q = q - 2;
   return *q + x; }"
 
+assert_outer 8 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = 3 + p; \
+  return *q; }"
 
-# NG, NOT YET
-#assert_outer 8 "int main() { int *p; int *q; int x; \
-#  alloc_four(&p, 1, 2, 4, 8); \
-#  q = 3 + p; \
-#  return *q; }"
-
+assert_outer 8 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  q = 1 + p + 2; \
+  return *q; }"
 
 # ---- END ----
 echo OK

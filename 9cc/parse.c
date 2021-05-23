@@ -534,8 +534,15 @@ Type *type_of(Node *node) {
       // 今のところ、boolはint
       return &type_int;
 
-    // 未対応
-    //ND_ASSIGN, // = (代入)
+    case ND_ASSIGN: // = (代入)
+      report_log(2, "Typeof ND_ASSIGN");
+      tp_left = type_of(node->lhs);
+      tp_right = type_of(node->rhs);
+      report_type(2, tp_left);
+      report_type(2, tp_right);
+      if (tp_left->ty != tp_right->ty)
+        report_error("代入の型が一致していません");
+      return tp_left;
 
     default:
       report_error("UNKNOWN Type");

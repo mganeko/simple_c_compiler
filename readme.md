@@ -182,8 +182,8 @@ Func def
   - [x] intへのポインターの場合 4バイト単位
   - [x] ポインターへのポインターの場合 8バイト単位
 - [x] int *p; p+1
-- [ ] int *p; 1+p
-- [ ] int *p; p+1+2
+- [x] int *p; 1+p
+- [x] int *p; p+1+2
 - [ ] int *p; int **q; q+1
  
 
