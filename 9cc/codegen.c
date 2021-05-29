@@ -233,10 +233,24 @@ void gen(Node *node) {
     // プロローグ
     int var_count = count_lvar(node->func_locals); // + node->args_count;
     int stack_offset = 16 * ((int)(var_count+1) /2);
+
+    // --- array も考慮して、staock_ofset を計算
+    //fprintf(stderr, "-- before calc_lvar_area\n");
+    int var_area_size = calc_lvar_area(node->func_locals);
+    //fprintf(stderr, "-- after calc_lvar_area\n");
+    int stack_offset_with_array = 16 * ((int)((var_area_size + 8)/16));
+    printf("  #-- offset=%d offset_w_array=%d \n", stack_offset, stack_offset_with_array);
+    if (stack_offset != stack_offset_with_array) {
+      // arrayがあると、サイズが異なることはある
+      //error( "ERROR: offset not same. offset=%d offset_w_array=%d \n", stack_offset, stack_offset_with_array);
+      fprintf(stderr, "WARN: offset not same. offset=%d offset_w_array=%d \n", stack_offset, stack_offset_with_array);
+    }
+
     printf("  # -- prologue --\n");
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", stack_offset); 
+    //printf("  sub rsp, %d\n", stack_offset); 
+    printf("  sub rsp, %d\n", stack_offset_with_array); 
 
     // -- 引数をレジスターからスタック上のローカル変数にセット --
     if (node->args_count > 0) {
@@ -368,6 +382,9 @@ void gen(Node *node) {
     if ((tp_left->ty == PTR) && (tp_right->ty == PTR))
       error("type_of() ポインター同志の演算はできません");
 
+    //if (tp_left->ty == ARRAY)
+    //  fprintf(stderr, "左項がARRAY\n");
+
     // 左項
     gen(node->lhs);
     if ((tp_left->ty == INT) && (tp_right->ty == PTR)) {
@@ -414,42 +431,31 @@ void gen(Node *node) {
       }
     }
 
-    /*--
-    // 最初の項がポインターの場合の特別処理
-    if (node->lhs->kind == ND_LVAR) {
-      //fprintf(stderr, "1st item is LVAR: ");
-      //dump_lvar(node->lhs->lvar);
-      if(node->lhs->lvar->type->ty == INT) {
-        //fprintf(stderr, "ty INT\n");
-        // INT型の場合はそのまま
+    if ((tp_left->ty == ARRAY) && (tp_right->ty == INT)) {
+      if (tp_left->ptr_to->ty == INT) {
+        // INTの配列の場合、4倍する
+        printf("  # mul right 4, for left ARRAY of INT\n");
+        printf("  push 4\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
       }
-      else if(node->lhs->lvar->type->ty == PTR) {
-        if(node->lhs->lvar->type->ptr_to->ty == INT) {
-          //fprintf(stderr, "ty PTR to INT\n");
-          // INTへのポインターの場合、4倍する
-          printf("  # mul 4 for PTR to INT\n");
-          printf("  push 4\n");
-          printf("  pop rdi\n");
-          printf("  pop rax\n");
-          printf("  imul rax, rdi\n");
-          printf("  push rax\n");
-        }
-        else {
-          //fprintf(stderr, "ty PTR to PTR\n");
-          // ポインターへのポインターの場合、8倍する
-          printf("  # mul 8 for PTR to PTR\n");
-          printf("  push 8\n");
-          printf("  pop rdi\n");
-          printf("  pop rax\n");
-          printf("  imul rax, rdi\n");
-          printf("  push rax\n");
-        }
+      else if (tp_left->ptr_to->ty == PTR) {
+        // ポインターの配列の場合、8倍する
+        printf("  # mul right 8 for left ARRAY of PTR\n");
+        printf("  push 8\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
       }
-      else {
-        fprintf(stderr, "ty %d\n", node->lhs->lvar->type->ty);
+      else if (tp_left->ptr_to->ty == ARRAY) {
+        // 配列の配列の場合
+        error("配列の配列はまだサポートできません");
       }
     }
-    ---*/
+
   }
   else {
     error("NOT Operator Node found, Kind(%d) while Genereting code \n", node->kind);
