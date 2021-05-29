@@ -36,6 +36,13 @@ void dump_lvar(LVar *lvar) {
 }
 
 void print_type(Type* type) {
+  if (type->ty == ARRAY) {
+    printf("Array of ");
+    print_type(type->ptr_to);
+    printf(", size=%ld ", type->array_size);
+    return;
+  }
+
   Type* t = type;
   while(t->ty == PTR) {
     printf("*");
@@ -282,10 +289,18 @@ void gen(Node *node) {
     print_lvar(node->lvar);
     print_type(node->lvar->type);
     printf("\n");
-    gen_lval(node);
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+
+    if (node->lvar->type->ty == ARRAY) {
+      printf("  #get ARRAY top address\n");
+      gen_lval(node);
+    }
+    else {
+      gen_lval(node);
+      printf("  #read value of Lvar adress \n");
+      printf("  pop rax\n");
+      printf("  mov rax, [rax]\n");
+      printf("  push rax\n");
+    }
     return;
   }
 
@@ -300,6 +315,7 @@ void gen(Node *node) {
     // 左辺
     if (node->lhs->kind == ND_DEREF) {
       // ポインター
+      printf("  #DEFER\n");
       gen_lvar_ref(node->lhs);
     }
     else {
@@ -317,6 +333,7 @@ void gen(Node *node) {
     gen(node->rhs);
 
     // 代入
+    printf("  #ASSIGN\n");
     printf("  pop rdi\n");
     printf("  pop rax\n");
     printf("  mov [rax], rdi\n");
@@ -333,7 +350,9 @@ void gen(Node *node) {
 
   // アドレスの指す中身 *
   if (node->kind == ND_DEREF) {
+    printf("  # DEREF-start\n");
     gen(node->lhs);
+    printf("  # DEREF-read value\n");
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");

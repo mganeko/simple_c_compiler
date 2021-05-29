@@ -46,12 +46,19 @@ void report_type(int level, Type* type) {
   if (level > log_level)
     return;
 
+  if (type->ty == ARRAY) {
+    fprintf(stderr, "Array of ");
+    report_type(level, type->ptr_to);
+    fprintf(stderr, ", size=%ld ", type->array_size);
+    return;
+  }
+
   Type* t = type;
   while(t->ty == PTR) {
     fprintf(stderr, "*");
     t = t->ptr_to;
   }
-  fprintf(stderr, "INT\n");
+  fprintf(stderr, "INT");
 }
 
 void report_lvar(int level, LVar *lvar) {
@@ -64,6 +71,7 @@ void report_lvar(int level, LVar *lvar) {
 
   fprintf(stderr, "LVar: name=%s, offset=%d Type=", buf, lvar->offset);
   report_type(level, lvar->type);
+  report_log(level, "\n");
 }
 
 // エラーを報告する
@@ -256,7 +264,7 @@ Token *tokenize(char *p) {
     }
 
     // --- 四則演算子、記号 ---
-    if (strchr("+-*/()<>=;{},&", *p)) {
+    if (strchr("+-*/()<>=;{},&[]", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -374,7 +382,7 @@ int count_lvar(LVar *locals) {
 }
 
 // 新しい変数を宣言する
-LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
+LVar *decl_new_lvar_0(Token *tok, Type* type, LVar **locals_ptr) {
   if (find_lvar(tok, locals_ptr))
     error_at(tok->str, "すでに変数が宣言されています");
   
@@ -385,11 +393,53 @@ LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
   lvar->len = tok->len;
   lvar->type = type;
   if (locals) {
-    report_log(4, "--next variable--");
-    lvar->offset = locals->offset + 8;
+    // 前の変数がある場合
+    report_log(2, "--next variable--");
+    if (locals->type->ty == ARRAY) {
+      report_log(1, "--after array--");
+      lvar->offset = locals->offset + 8*locals->type->array_size;
+    }
+    else 
+      lvar->offset = locals->offset + 8;
   }
   else {
+    // 最初の変数の場合
     report_log(4, "--1st variable--");
+    lvar->offset = 8; // NG0;
+  }
+
+  locals = lvar;
+  *locals_ptr = lvar;
+  report_log(3, "--locals=%d, *locals_ptr=%d", locals, *locals_ptr);
+  report_lvar(3, lvar);
+
+  return lvar;
+}
+
+// 新しい変数/配列を宣言する
+LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
+  if (find_lvar(tok, locals_ptr))
+    error_at(tok->str, "すでに変数/配列が宣言されています");
+  
+  LVar *locals = *locals_ptr;
+  LVar *lvar = calloc(1, sizeof(LVar));
+  lvar->next = locals;
+  lvar->name = tok->str;
+  lvar->len = tok->len;
+  lvar->type = type;
+  if (locals) {
+    // 前の変数がある場合
+    report_log(2, "--next variable--");
+    if (locals->type->ty == ARRAY) {
+      report_log(2, "--after array--");
+      lvar->offset = locals->offset + 8*locals->type->array_size;
+    }
+    else 
+      lvar->offset = locals->offset + 8;
+  }
+  else {
+    // 最初の変数の場合
+    report_log(2, "--1st variable--");
     lvar->offset = 8; // NG0;
   }
 
@@ -405,6 +455,8 @@ LVar *decl_new_lvar(Token *tok, Type* type, LVar **locals_ptr) {
 // --- node ---
 Node *expr(LVar **locals_ptr);
 Node *stmt(LVar **locals_ptr);
+Node *mul(LVar **locals_ptr);
+Node *add(LVar **locals_ptr);
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
@@ -450,6 +502,7 @@ Node *new_node_func_def(Token *tok, Type* type) {
   report_log(2, "- Node FUNC_DEF funcname=%s", node->func_name);
   node->func_type = type;
   report_type(2, type);
+  report_log(2, "\n");
 
   return node;
 }
@@ -539,7 +592,9 @@ Type *type_of(Node *node) {
       tp_left = type_of(node->lhs);
       tp_right = type_of(node->rhs);
       report_type(2, tp_left);
+      report_log(2, "\n");
       report_type(2, tp_right);
+      report_log(2, "\n");
       if (tp_left->ty != tp_right->ty)
         report_error("代入の型が一致していません");
       return tp_left;
@@ -610,9 +665,22 @@ Node *primary(LVar **locals_ptr) {
     }
 
     // -- そうでない場合は、変数 --
-    report_log(3, "--parse Node IDENT");
+    report_log(2, "--parse Node IDENT");
     Node *node = new_node_lvar(tok, locals_ptr);
-    return node;
+    if (! consume("[")) 
+      return node; // 普通の変数
+
+
+    // -- 配列 --
+    report_log(2, "--parse Array index");
+
+    // 足し算
+    Node* add = new_node(ND_ADD, node, expr(locals_ptr));
+    expect("]");
+
+    // *(a + x) に変換
+    Node *deref = new_node(ND_DEREF, add, NULL);
+    return deref;
   }
 
   // そうでなければ数値のはず
@@ -743,6 +811,32 @@ Node *stmt(LVar **locals_ptr) {
     if (! tok)
       error_at(token->str, "intの後がアイデンティファイアーではありません");
   
+    // 配列
+    if (consume("[")) {
+      report_log(4, "Find Array [");
+      int val = expect_number();
+      expect("]");
+      expect(";");
+      report_log(4, "Close Array ] size=%d", val);
+   
+      Type* new_tp = calloc(1, sizeof(Type));
+      new_tp->ty = ARRAY;
+      new_tp->ptr_to = type;
+      new_tp->array_size = val;
+      type = new_tp;
+
+      report_log(2, "stmt() decl_new_lvar (array)");
+      LVar *array = decl_new_lvar(tok, type, locals_ptr);
+      report_lvar(2, array);
+      report_log(2, "stmt() new_node_lvar for array");
+      node = new_node_lvar(tok, locals_ptr);
+      report_lvar(2, node->lvar);
+
+      // TODO
+      return node;
+    }
+
+    // 変数
     if (consume(";")) {
       // -- 変数宣言 --
       report_log(3, "stmt() decl_new_lvar");
@@ -947,7 +1041,7 @@ Node *stmt(LVar **locals_ptr) {
 
     // -- それ以外は、";"が必要 --
     if (!consume(";"))
-      error_at(token->str, "';'ではないトークンです");
+      error_at(token->str, "';'ではないトークンです stmt()");
   }
 
   //dump_token();
