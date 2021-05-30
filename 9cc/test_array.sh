@@ -98,6 +98,18 @@ assert_outer 15 "int main() { int *p; int *q; int x; \
   x = p[0] + p[1] + p[2] + p[3]; \
   return x; }"
 
+assert 15 "int sum(int *p, int len) { int i; int s; s = 0; for (i=0; i < len; i=i+1) { s = *(p + i) + s; } return s; } \
+  int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; sum(a, 5); } "
+
+assert 15 "int sum(int *addr, int len) { int i; int s; s = 0; for (i=0; i < len; i=i+1) { s = s + addr[i]; } return s; } \
+  int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; sum(a, 5); } "
+
+assert 15 "int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; sum(a, 5); } \ 
+ int sum(int *p, int len) { int i; int s; s = 0; for (i=0; i < len; i=i+1) { s = *(p + i) + s; } return s; }"
+
+assert 15 "int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; sum(a, 5); } \ 
+ int sum(int *addr, int len) { int i; int s; s = 0; for (i=0; i < len; i=i+1) { s = s + addr[i]; } return s; }"
+
 # ---- END ----
 echo OK
 exit 0
