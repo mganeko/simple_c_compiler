@@ -89,6 +89,15 @@ assert 55 "int add(int x, int y) { return x+y; } int main() { int a[10]; int i; 
   int sum; sum = 0; for(i = 0; i < 10; i=i+1) sum = add(sum, a[i]); return sum;}"
 
 
+assert 3 "int main() { int a[2]; *a = 1; *(a + 1) = 2; return a[0] + a[1]; }"
+assert 3 "int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }"
+assert 3 "int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return p[0] + p[1]; }"
+
+assert_outer 15 "int main() { int *p; int *q; int x; \
+  alloc_four(&p, 1, 2, 4, 8); \
+  x = p[0] + p[1] + p[2] + p[3]; \
+  return x; }"
+
 # ---- END ----
 echo OK
 exit 0

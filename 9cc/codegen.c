@@ -323,7 +323,17 @@ void gen(Node *node) {
     // 型判定
     Type* tp_left = type_of(node->lhs);
     Type* tp_right = type_of(node->rhs);
-    if (tp_left->ty != tp_right->ty)
+
+    // ポインターと配列の代入
+    if ( (tp_left->ty == PTR) && (tp_right->ty == ARRAY) ) {
+      if (tp_left->ptr_to->ty == tp_right->ptr_to->ty) {
+        printf("  # ASSIGN PTR from ARRAY\n");
+      }
+      else {
+        error("gen() PTRに配列のアドレスを代入する際に、その先の型が一致していません");
+      }
+    }
+    else if (tp_left->ty != tp_right->ty)
       error("gen() 代入の型が一致していません");
 
     // 左辺
