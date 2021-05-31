@@ -37,8 +37,9 @@ Token *tokenize(char *p);
 typedef struct Type Type;
 
 struct Type {
-  enum { INT, PTR } ty;
+  enum { INT, PTR, ARRAY } ty;
   struct Type *ptr_to;
+  size_t array_size;
 };
 
 // --- local variable ---
@@ -119,7 +120,10 @@ void program(LVar **locals_ptr);
 
 // ローカル変数の数を返す
 int count_lvar(LVar *locals);
- 
+
+// ローカル変数の領域のサイズを返す
+int calc_lvar_area(LVar *locals);
+
 // -- 型を判定 --
 Type *type_of(Node *node);
 
