@@ -74,6 +74,26 @@ void report_lvar(int level, LVar *lvar) {
   report_log(level, "\n");
 }
 
+/*
+struct Token {
+  TokenKind kind; // トークンの型
+  Token *next;    // 次の入力トークン
+  int val;        // kindがTK_NUMの場合、その数値
+  char *str;      // トークン文字列
+  int len;        // トークンの長さ
+};
+*/
+void report_token(int level, Token *t) {
+  if (level > log_level)
+    return;
+
+  char buf[256];
+  strncpy(buf, t->str, t->len);
+  buf[t->len] = '\0';
+
+  fprintf(stderr, "Token: kind=%d val=%d str='%s'\n", t->kind, t->val, buf);
+}
+
 // エラーを報告する
 void report_error(char *fmt, ...) {
   va_list ap;
@@ -226,6 +246,9 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   tok->str = str;
   tok->len = len;
   cur->next = tok;
+
+  //report_token(3, tok);
+
   return tok;
 }
 
@@ -236,6 +259,9 @@ Token *new_token_ident(TokenKind kind, Token *cur, char *str) {
   tok->str = str;
   tok->len = count_ident_len(str);
   cur->next = tok;
+
+  //report_token(3, tok);
+
   return tok;
 }
 
@@ -344,7 +370,8 @@ Token *tokenize(char *p) {
     }
 
     //error("トークナイズできません");
-    error_at(p, "トークナイズできません");
+    char c = *p;
+    error_at(p, " '%c'(%d) トークナイズできません", c, c);
   }
 
   new_token(TK_EOF, cur, p, 0);
