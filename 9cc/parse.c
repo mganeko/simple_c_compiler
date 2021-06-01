@@ -686,8 +686,15 @@ Type *type_of(Node *node) {
       if (tp_right->ty == PTR)
         return tp_right;
       
-      if (tp_right->ty == ARRAY)
-        report_error("type_of() INT + ARRAY の演算はまだサポートできていません」"); 
+      if (tp_right->ty == ARRAY) {
+        //report_error("type_of() INT + ARRAY の演算はまだサポートできていません」"); 
+        report_log(2, "type_of right=ARRAY");
+        if (tp_left->ty == INT) {
+          return tp_right;
+        }
+
+        report_error("type_of() 不明な型とARRAYの演算はできません"); 
+      }
 
       // 整数同志のはず
       return tp_left;
@@ -798,8 +805,29 @@ Node *primary(LVar **locals_ptr) {
   }
 
   // そうでなければ数値のはず
-  report_log(3, "--parse Node NUM");
-  return new_node_num(expect_number());
+  report_log(2, "--parse Node NUM");
+  //return new_node_num(expect_number());
+  Node* node_num = new_node_num(expect_number());
+  if (! consume("["))
+    return node_num; // 普通の整数値
+    
+  // -- 配列表現 1[a] --
+  // 次が変数（アイデンティファイヤー）か？
+  Token *tok_iden = consume_ident();
+  if (! tok_iden)
+    error_at(token->str, "int[の後がアイデンティファイアーではありません");
+  
+  Node *node_var = new_node_lvar(tok_iden, locals_ptr);
+  if (! consume("]")) 
+    error_at(token->str, "int[変数の後が ']'ではありません");
+  report_log(2, "--parse Array index another type");
+
+  // 足し算に変換
+  Node* add = new_node(ND_ADD, node_num, node_var);
+
+  // *(x + a) に変換
+  Node *deref = new_node(ND_DEREF, add, NULL);
+  return deref;
 }
 
 Node *unary(LVar **locals_ptr) {

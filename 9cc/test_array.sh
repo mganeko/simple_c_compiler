@@ -89,6 +89,9 @@ assert 15 "int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] =
 assert 15 "int main() { int a[5]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; sum(a, 5); } \
  int sum(int *addr, int len) { int i; int s; s = 0; for (i=0; i < len; i=i+1) { s = s + addr[i]; } return s; }"
 
+# 配列の特殊表現
+assert 11 "int main() { int a[10]; 3[a] = 11; a[3];}"
+
 # ---- END ----
 echo OK
 exit 0
