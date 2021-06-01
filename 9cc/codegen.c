@@ -417,6 +417,30 @@ void gen(Node *node) {
         printf("  push rax\n");
       }
     }
+    else if ((tp_left->ty == INT) && (tp_right->ty == ARRAY)) {
+      if (tp_right->ptr_to->ty == INT) {
+        // INTの配列の場合、4倍する
+        printf("  # mul left 4, for right ARRAY of INT\n");
+        printf("  push 4\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+      else if (tp_right->ptr_to->ty == PTR) {
+        // ポインターの配列の場合、8倍する
+        printf("  # mul left 8 for right ARRAY of PTR\n");
+        printf("  push 8\n");
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  imul rax, rdi\n");
+        printf("  push rax\n");
+      }
+      else if (tp_right->ptr_to->ty == ARRAY) {
+        // 配列の配列の場合
+        error("配列の配列はまだサポートできません");
+      }
+    }
 
     // 右項
     gen(node->rhs);
@@ -440,8 +464,7 @@ void gen(Node *node) {
         printf("  push rax\n");
       }
     }
-
-    if ((tp_left->ty == ARRAY) && (tp_right->ty == INT)) {
+    else if ((tp_left->ty == ARRAY) && (tp_right->ty == INT)) {
       if (tp_left->ptr_to->ty == INT) {
         // INTの配列の場合、4倍する
         printf("  # mul right 4, for left ARRAY of INT\n");
